@@ -1,0 +1,170 @@
+﻿using AForge.Video;
+using AForge.Video.DirectShow;
+using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms;
+
+public partial class WebcamScannerForm : Form
+{
+    private readonly ScryfallService _scryfallService;
+    private readonly CollectionService _collectionService;
+    private VideoCaptureDevice? _videoSource;
+    private FilterInfoCollection? _videoDevices;
+    private Bitmap? _currentFrame;
+
+    public WebcamScannerForm(ScryfallService scryfallService, CollectionService collectionService)
+    {
+        _scryfallService = scryfallService;
+        _collectionService = collectionService;
+        InitializeComponent();
+        LoadCameras();
+    }
+
+    private void LoadCameras()
+    {
+        try
+        {
+            _videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            cmbCameras.Items.Clear();
+            if (_videoDevices.Count == 0)
+            {
+                cmbCameras.Items.Add("No cameras found");
+                cmbCameras.Enabled = false;
+                btnStart.Enabled = false;
+                btnCapture.Enabled = false;
+                btnAdd.Enabled = false;
+            }
+            else
+            {
+                foreach (FilterInfo device in _videoDevices)
+                {
+                    cmbCameras.Items.Add(device.Name);
+                }
+                cmbCameras.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading cameras: {ex.Message}", "Camera Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BtnStart_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_videoDevices == null || _videoDevices.Count == 0)
+                return;
+
+            if (cmbCameras.SelectedIndex < 0)
+                cmbCameras.SelectedIndex = 0;
+
+            _videoSource = new VideoCaptureDevice(_videoDevices[cmbCameras.SelectedIndex].MonikerString);
+            _videoSource.NewFrame += VideoSource_NewFrame;
+            _videoSource.Start();
+            btnStart.Enabled = false;
+            btnStop.Enabled = true;
+            btnCapture.Enabled = true;
+            lblStatus.Text = "Live preview";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error starting camera: {ex.Message}", "Camera Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BtnStop_Click(object? sender, EventArgs e)
+    {
+        StopCamera();
+    }
+
+    private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
+    {
+        try
+        {
+            var frame = (Bitmap)eventArgs.Frame.Clone();
+            _currentFrame?.Dispose();
+            _currentFrame = frame;
+            picPreview.Image?.Dispose();
+            picPreview.Image = (Bitmap)frame.Clone();
+        }
+        catch
+        {
+            // ignore frame errors
+        }
+    }
+
+    private void BtnCapture_Click(object? sender, EventArgs e)
+    {
+        if (_currentFrame == null)
+        {
+            MessageBox.Show("No frame available. Start the camera first.", "Capture", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // Freeze current image for review
+        picCaptured.Image?.Dispose();
+        picCaptured.Image = (Bitmap)_currentFrame.Clone();
+        lblStatus.Text = "Captured frame. Enter card name and Add.";
+    }
+
+    private async void BtnAdd_Click(object? sender, EventArgs e)
+    {
+        var name = txtCardName.Text.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            MessageBox.Show("Enter the card name to search.", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnAdd.Enabled = false;
+        lblStatus.Text = "Searching card...";
+
+        try
+        {
+            var card = await _scryfallService.GetCardByNameAsync(name);
+            if (card == null)
+            {
+                MessageBox.Show("Card not found on Scryfall.", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var addDialog = new AddToCollectionDialog(_collectionService, card);
+            if (addDialog.ShowDialog(this) == DialogResult.OK)
+            {
+                lblStatus.Text = "Added to collection.";
+                this.DialogResult = DialogResult.OK;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error adding card: {ex.Message}", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnAdd.Enabled = true;
+        }
+    }
+
+    private void StopCamera()
+    {
+        try
+        {
+            if (_videoSource != null && _videoSource.IsRunning)
+            {
+                _videoSource.SignalToStop();
+                _videoSource.NewFrame -= VideoSource_NewFrame;
+                _videoSource = null;
+            }
+        }
+        catch { }
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        StopCamera();
+        _currentFrame?.Dispose();
+        base.OnFormClosing(e);
+    }
+}

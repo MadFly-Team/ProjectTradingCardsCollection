@@ -1,0 +1,201 @@
+﻿using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms;
+
+public partial class AddToCollectionDialog : Form
+{
+    private readonly CollectionService _collectionService;
+    private readonly Card _card;
+
+    public AddToCollectionDialog(CollectionService collectionService, Card card)
+    {
+        InitializeComponent();
+        _collectionService = collectionService;
+        _card = card;
+        
+        lblCardName.Text = $"Add Card: {card.Name}";
+        foreach (var variant in card.Variants)
+            cmbVariant.Items.Add(variant);
+        cmbVariant.SelectedItem = card.SelectedVariant;
+        if (cmbVariant.SelectedIndex < 0 && cmbVariant.Items.Count > 0)
+            cmbVariant.SelectedIndex = 0;
+        btnAdd.Enabled = cmbVariant.Items.Count > 0;
+        LoadCollections();
+    }
+
+    private void CmbVariant_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        var prices = (cmbVariant.SelectedItem as CardVariant)?.Prices;
+        var values = new List<string>();
+        if (GbpPriceService.TryParsePrice(prices?.Usd, out _)) values.Add($"{prices!.Usd} USD");
+        if (GbpPriceService.TryParsePrice(prices?.Eur, out _)) values.Add($"{prices!.Eur} EUR");
+        lblVariantPrice.Text = values.Count == 0 ? "Price unavailable for this variant" : string.Join(" / ", values);
+    }
+
+    private void LoadCollections()
+    {
+        treeViewCollections.Nodes.Clear();
+        
+        var collections = _collectionService.GetAllCollections();
+        
+        foreach (var collection in collections)
+        {
+            var collectionNode = new TreeNode(collection.Name)
+            {
+                Tag = collection
+            };
+            
+            foreach (var folder in collection.Folders)
+            {
+                var folderNode = new TreeNode(folder.Name)
+                {
+                    Tag = folder
+                };
+                collectionNode.Nodes.Add(folderNode);
+            }
+            
+            treeViewCollections.Nodes.Add(collectionNode);
+            collectionNode.Expand();
+        }
+    }
+
+    private async void BtnAdd_Click(object? sender, EventArgs e)
+    {
+        var selectedNode = treeViewCollections.SelectedNode;
+        
+        if (selectedNode == null)
+        {
+            MessageBox.Show("Please select a folder to add the card to.", "No Selection", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // Get the folder node (either selected or parent of selected)
+        TreeNode? folderNode = null;
+        Collection? collection = null;
+        
+        if (selectedNode.Tag is CollectionFolder)
+        {
+            folderNode = selectedNode;
+            collection = selectedNode.Parent?.Tag as Collection;
+        }
+        else if (selectedNode.Tag is Collection)
+        {
+            MessageBox.Show("Please select a folder within the collection.", "Select Folder", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (collection == null || folderNode == null)
+        {
+            MessageBox.Show("Invalid selection.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        var folder = folderNode.Tag as CollectionFolder;
+        if (folder == null)
+        {
+            MessageBox.Show("Invalid folder selection.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        if (cmbVariant.SelectedItem is not CardVariant variant)
+        {
+            MessageBox.Show(this, "Select a card variant before adding it.", "Select Variant",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            btnAdd.Enabled = false;
+            btnAdd.Text = "Adding...";
+
+            await _collectionService.AddCardToFolderAsync(
+                collection.Id, folder.Id, _card, (int)numQuantity.Value, variant,
+                cmbCondition.SelectedItem?.ToString() ?? "Near Mint", txtNotes.Text);
+
+            MessageBox.Show($"Added {numQuantity.Value}x {_card.Name} ({variant.Description}) to {collection.Name} > {folder.Name}",
+                "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error adding card: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnAdd.Enabled = true;
+            btnAdd.Text = "Add";
+        }
+    }
+
+    private async void BtnNewCollection_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new CreateCollectionDialog();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                await _collectionService.CreateCollectionAsync(
+                    dialog.CollectionName,
+                    dialog.CollectionDescription
+                );
+                
+                LoadCollections();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating collection: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnNewFolder_Click(object? sender, EventArgs e)
+    {
+        var selectedNode = treeViewCollections.SelectedNode;
+        
+        Collection? collection = null;
+        
+        if (selectedNode?.Tag is Collection coll)
+        {
+            collection = coll;
+        }
+        else if (selectedNode?.Tag is CollectionFolder && selectedNode.Parent?.Tag is Collection parentColl)
+        {
+            collection = parentColl;
+        }
+        
+        if (collection == null)
+        {
+            MessageBox.Show("Please select a collection first.", "No Collection Selected", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new CreateFolderDialog();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                await _collectionService.AddFolderAsync(
+                    collection.Id,
+                    dialog.FolderName,
+                    dialog.FolderDescription
+                );
+                
+                LoadCollections();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating folder: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}

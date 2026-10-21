@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="Forms\AboutBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\AddToCollectionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\CreateCollectionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\CreateFolderDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\ImageViewerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MainForm.Collections.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\PreferencesDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\SplashScreen.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\WebcamScannerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

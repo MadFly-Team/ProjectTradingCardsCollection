@@ -1,0 +1,155 @@
+﻿using System.Net;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using ProjectMTGCollector.Forms;
+using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+internal static class Program
+{
+    private const string Fixture = """
+    {"id":"test-1","name":"Testmon","category":"Pokemon","set":{"id":"test","name":"Test Set"},
+     "variants":{"holo":true,"reverse":true,"normal":true,"firstEdition":true},
+     "pricing":{"tcgplayer":{"normal":{"marketPrice":1},"holofoil":{"marketPrice":99},"reverse-holofoil":{"marketPrice":3}}},
+     "variants_detailed":[
+       {"variantId":"unlimited","type":"holo","subtype":"unlimited","size":"standard","pricing":{"tcgplayer":{"holofoil":{"marketPrice":10}}}},
+       {"variantId":"first","type":"holo","subtype":"shadowless","stamp":["1st-edition"],"size":"standard","pricing":{"cardmarket":{"avg":100}}},
+       {"variantId":"shadowless","type":"holo","subtype":"shadowless","size":"standard"},
+       {"variantId":"reverse","type":"reverse","size":"standard","pricing":{"tcgplayer":{"reverse-holofoil":{"marketPrice":3}}}},
+       {"variantId":"jumbo","type":"normal","subtype":"special","size":"jumbo","stamp":["staff"]}
+     ]}
+    """;
+
+    [STAThread]
+    private static void Main(string[] args)
+    {
+        ApplicationConfiguration.Initialize();
+        RunAsync(args).GetAwaiter().GetResult();
+    }
+
+    private static void Check(bool condition, string message)
+    {
+        if (!condition) throw new Exception(message);
+    }
+
+    private static async Task RunAsync(string[] args)
+    {
+        var service = new PokemonCardService(new HttpClient(new Handler(Fixture)));
+        var card = (await service.GetCardByIdAsync("test-1"))!;
+        Check(card.Variants.Count == 5, "Detailed variants collapsed or spurious variants created");
+        var unlimited = card.Variants.Single(v => v.Id == "unlimited");
+        var first = card.Variants.Single(v => v.Id == "first");
+        var shadowless = card.Variants.Single(v => v.Id == "shadowless");
+        var reverse = card.Variants.Single(v => v.Id == "reverse");
+        Check(unlimited.Prices?.Usd == "10" && first.Prices?.Eur == "100" && first.Prices.Usd == null, "Variant prices were conflated");
+        Check(shadowless.Prices == null, "Missing variant price borrowed from another edition");
+        Check(reverse.Prices?.Usd == "3" && reverse.IsHolo, "Reverse holo mapped incorrectly");
+        Check(first.Description.Contains("Shadowless") && first.Description.Contains("First Edition"), "Stamp/subtype missing");
+        Check(card.Variants.Single(v => v.Id == "jumbo").Description.Contains("Jumbo"), "Size missing");
+        var selected = card.WithVariant(first);
+        Check(card.SelectedVariant == null && card.Prices?.UsdFoil == "99" && selected.Prices?.Eur == "100", "Selecting a variant mutated the canonical cached card");
+        try { card.WithVariant(new CardVariant { Id = "foreign" }); throw new Exception("Foreign variant accepted"); }
+        catch (ArgumentException) { }
+        Console.WriteLine("PASS separate edition/stamp/size metadata, finish prices, missing-price safety and immutable selection");
+
+        var root = Path.Combine(AppContext.BaseDirectory, "isolated-collection");
+        var store = new CollectionService(root);
+        var collection = await store.CreateCollectionAsync("Variants", "Checks");
+        var folder = await store.AddFolderAsync(collection.Id, "Folder");
+        folder.Cards.Add(new CollectionCard { CardId = card.Id, CardName = card.Name, IsFoil = true, Quantity = 7, CurrentPrice = 9, PriceCurrency = "USD", Notes = "legacy" });
+        await store.SaveCollectionsAsync();
+        await store.AddCardToFolderAsync(collection.Id, folder.Id, card, 2, unlimited, "Good");
+        await store.AddCardToFolderAsync(collection.Id, folder.Id, selected, 1, notes: "first copy");
+        await store.AddCardToFolderAsync(collection.Id, folder.Id, card, 3, reverse);
+        await store.AddCardToFolderAsync(collection.Id, folder.Id, card, 4, shadowless);
+        await store.AddCardToFolderAsync(collection.Id, folder.Id, card, 1, unlimited, "Good");
+        Check(folder.Cards.Count == 5 && folder.Cards.Single(c => c.Variant?.Id == "unlimited").Quantity == 3, "Variants merged into the wrong entries");
+        Check(folder.Cards.Single(c => c.Variant?.Id == "unlimited").Condition == "Good", "Condition without notes lost");
+        Check(folder.Cards.Single(c => c.Variant?.Id == "first").CurrentPrice == 100 && folder.Cards.Single(c => c.Variant?.Id == "first").PriceCurrency == "EUR", "Stored price not variant-specific");
+        Check(folder.Cards.Single(c => c.Variant?.Id == "shadowless").CurrentPrice == null, "Missing variant price fabricated in collection");
+        await store.UpdateCardQuantityAsync(collection.Id, folder.Id, card.Id, true, 8, reverse.Id);
+        await store.RemoveCardFromFolderAsync(collection.Id, folder.Id, card.Id, true, unlimited.Id);
+        Check(folder.Cards.Count == 4 && folder.Cards.Single(c => c.Variant?.Id == "reverse").Quantity == 8 && folder.Cards.Single(c => c.Variant == null).Quantity == 7, "Variant removal/quantity affected other versions");
+        var reload = new CollectionService(root);
+        await reload.LoadCollectionsAsync();
+        var saved = reload.GetCollection(collection.Id)!.Folders.Single().Cards;
+        Check(saved.Count == 4 && saved.Single(c => c.Variant?.Id == "first").Variant!.Stamps.SequenceEqual(new[] { "1st-edition" }), "Variant metadata did not round-trip");
+        Check(saved.Single(c => c.Variant == null).Notes == "legacy" && saved.Single(c => c.Variant == null).VariantDescription.Contains("Legacy"), "Legacy data changed");
+        await reload.RemoveCardFromFolderAsync(collection.Id, folder.Id, card.Id, true);
+        Check(reload.GetCollection(collection.Id)!.Folders.Single().Cards.Count == 3, "Legacy removal deleted exact variants");
+        Console.WriteLine("PASS persistence, variant-specific values, independent quantities/removal and legacy preservation");
+
+        var legacy = JsonSerializer.Deserialize<CollectionCard>("{\"cardId\":\"old\",\"isFoil\":false,\"quantity\":5}")!;
+        Check(legacy.Variant == null && legacy.Quantity == 5 && legacy.VariantDescription.Contains("Legacy non-holo"), "Old JSON incompatible");
+        var plainJson = """{"id":"test-2","name":"Testmon","set":{"id":"test"},"variants":{"normal":true,"reverse":true},"pricing":{"tcgplayer":{"normal":{"marketPrice":1},"reverse-holofoil":{"marketPrice":2}},"cardmarket":{"avg":1,"avg-holo":2}}}""";
+        var plain = (await new PokemonCardService(new HttpClient(new Handler(plainJson))).GetCardByIdAsync("test-2"))!;
+        Check(plain.Variants.Count == 2 && plain.Variants.Single(v => v.Type == "reverse").Prices?.Usd == "2" && plain.Variants.Single(v => v.Type == "reverse").Prices?.Eur == "2", "Summary finish pricing lost");
+        var unknown = (await new PokemonCardService(new HttpClient(new Handler("""{"id":"test-3","name":"Unknown","set":{"id":"test"}}"""))).GetCardByIdAsync("test-3"))!;
+        Check(unknown.Variants.Single().Type == "unspecified" && unknown.Variants.Single().Prices == null, "Unknown variant fabricated");
+        var all = await service.GetAllPrintingsAsync("Testmon");
+        Check(all.Count == 105 && all.All(c => c.Name == "Testmon"), "All-printings cap or unrelated names remain");
+        Console.WriteLine("PASS old JSON, summary fallback, unknown coverage and more than 100 exact-name printings");
+
+        UiChecks(card, selected, store);
+        if (args.Contains("--live"))
+        {
+            var live = new PokemonCardService();
+            var charizard = (await live.GetCardByIdAsync("base1-4"))!;
+            Check(charizard.Variants.Count == 4, "Live Charizard should have four physical variants");
+            Check(charizard.Variants.Any(v => v.Subtype == "shadowless" && v.Stamps.Contains("1st-edition")), "Live first-edition shadowless missing");
+            Check(charizard.Variants.Single(v => v.Subtype == "unlimited").Prices?.Usd != null, "Live unlimited price missing");
+            var pineco = (await live.GetCardByIdAsync("sv01-001"))!;
+            Check(pineco.Variants.Any(v => v.Type == "normal") && pineco.Variants.Any(v => v.Type == "reverse"), "Live normal/reverse missing");
+            foreach (var v in charizard.Variants) Console.WriteLine($"LIVE {v.Description}: USD {v.Prices?.Usd ?? "N/A"}, EUR {v.Prices?.Eur ?? "N/A"}");
+            Console.WriteLine("PASS live detailed Charizard editions and Pineco normal/reverse variants");
+        }
+    }
+
+    private static void UiChecks(Card card, Card selected, CollectionService store)
+    {
+        Exception? error = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var main = (MainForm)RuntimeHelpers.GetUninitializedObject(typeof(MainForm));
+                typeof(MainForm).GetField("_gbpPrices", flags)!.SetValue(main, new GbpPriceService());
+                using var list = new ListView();
+                using var label = new Label();
+                typeof(MainForm).GetMethod("PopulateVariantRows", flags)!.Invoke(main, new object[] { list, label, new List<Card> { card } });
+                Check(list.Items.Count == 5 && ((Card)list.Items[1].Tag!).SelectedVariant?.Id == "first", "Physical rows did not preserve selection");
+                Check(list.Items[1].SubItems[3].Text == "N/A" && list.Items[1].SubItems[4].Text.StartsWith("100 EUR"), "Table mixed variant prices");
+                var value = (string)typeof(MainForm).GetMethod("FormatCardValue", flags)!.Invoke(main, new object[] { selected })!;
+                Check(value.Contains("First Edition") && value.Contains("100") && !value.Contains("99"), "Selected detail price wrong");
+                using var dialog = new AddToCollectionDialog(store, selected);
+                var combo = (ComboBox)typeof(AddToCollectionDialog).GetField("cmbVariant", flags)!.GetValue(dialog)!;
+                var price = (Label)typeof(AddToCollectionDialog).GetField("lblVariantPrice", flags)!.GetValue(dialog)!;
+                Check(combo.Items.Count == 5 && ((CardVariant)combo.SelectedItem!).Id == "first" && price.Text == "100 EUR", "Add dialog lost selected variant or price");
+                combo.SelectedIndex = 2;
+                Check(price.Text == "Price unavailable for this variant", "Unpriced variant borrowed another price");
+                Console.WriteLine("PASS physical rows, row-selection identity, detailed value and add-dialog selector/pricing");
+            }
+            catch (Exception ex) { error = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error != null) throw error;
+    }
+
+    private sealed class Handler(string cardJson) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            string body;
+            if (path.Contains("/sets/")) body = """{"id":"test","name":"Test Set","releaseDate":"2000-01-01"}""";
+            else if (path.EndsWith("/cards"))
+                body = JsonSerializer.Serialize(Enumerable.Range(0, 105).Select(i => new { id = $"test-{i}", name = "Testmon" }).Append(new { id = "other-1", name = "Other Testmon" }));
+            else body = cardJson;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+        }
+    }
+}

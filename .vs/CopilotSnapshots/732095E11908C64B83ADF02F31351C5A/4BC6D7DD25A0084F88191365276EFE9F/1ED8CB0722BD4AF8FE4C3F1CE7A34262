@@ -1,0 +1,72 @@
+﻿using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms;
+
+public partial class AboutBox : Form
+{
+    private readonly ScryfallService _scryfallService;
+    private readonly ImageCacheService _imageCacheService;
+
+    public AboutBox()
+    {
+        InitializeComponent();
+        _scryfallService = new ScryfallService();
+        _imageCacheService = new ImageCacheService();
+        _ = LoadRandomCard();
+    }
+
+    private async void BtnNewCard_Click( object? sender, EventArgs e )
+    {
+        await LoadRandomCard();
+    }
+
+    private async Task LoadRandomCard()
+    {
+        btnNewCard.Enabled = false;
+        lblRandomCard.Text = "Loading random card...";
+        picRandomCard.Image = null;
+
+        try
+        {
+            // Search for a random card
+            var randomCards = await _scryfallService.SearchCardsAsync( "is:booster", 175 );
+
+            if ( randomCards.Any() )
+            {
+                var random = new Random();
+                var randomCard = randomCards [ random.Next( randomCards.Count ) ];
+
+                lblRandomCard.Text = $"{randomCard.Name}\n{randomCard.SetName} ({randomCard.Set.ToUpper()})";
+
+                // Load image
+                string? imageUrl = randomCard.ImageUris?.Normal ?? randomCard.CardFaces?.FirstOrDefault()?.ImageUris?.Normal;
+                if ( !string.IsNullOrEmpty( imageUrl ) )
+                {
+                    var image = await _imageCacheService.GetImageAsync( imageUrl );
+                    if ( image != null )
+                    {
+                        picRandomCard.Image = image;
+                    }
+                }
+            }
+            else
+            {
+                lblRandomCard.Text = "Could not load random card";
+            }
+        }
+        catch ( Exception ex )
+        {
+            lblRandomCard.Text = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            btnNewCard.Enabled = true;
+        }
+    }
+
+    private void lblDescription_Click( object sender, EventArgs e )
+    {
+
+    }
+}

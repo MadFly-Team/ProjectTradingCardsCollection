@@ -1,0 +1,970 @@
+using Microsoft.Web.WebView2.WinForms;
+namespace ProjectMTGCollector.Forms {
+partial class MainForm {
+  private System.ComponentModel.IContainer components = null;
+
+  protected override void Dispose(bool disposing) {
+    if (disposing && (components != null)) {
+      components.Dispose();
+    }
+    base.Dispose(disposing);
+  }
+
+  private void InitializeComponent() {
+    this.menuStrip = new MenuStrip();
+    this.fileToolStripMenuItem = new ToolStripMenuItem();
+    this.preferencesToolStripMenuItem = new ToolStripMenuItem();
+    this.toolStripSeparator1 = new ToolStripSeparator();
+    this.exitToolStripMenuItem = new ToolStripMenuItem();
+    this.themesToolStripMenuItem = new ToolStripMenuItem();
+    this.helpToolStripMenuItem = new ToolStripMenuItem();
+    this.aboutToolStripMenuItem = new ToolStripMenuItem();
+
+    this.tabControl = new TabControl();
+    this.tabSearchCard = new TabPage();
+    this.tabBrowseSets = new TabPage();
+    this.tabSetCards = new TabPage();
+    this.tabCollections = new TabPage();
+
+    // Search Card Tab
+    this.txtSearchCard = new TextBox();
+    this.btnSearchCard = new Button();
+    this.btnLoadVariants = new Button();
+    this.btnAddToCollection = new Button();
+    this.panelCardDetails = new Panel();
+    this.lblCardName = new Label();
+    this.wbCardSetIcon = new WebView2();
+    this.lblCardValue = new Label();
+    this.lblManaCost = new Label();
+    this.lblType = new Label();
+    this.lblOracleText = new Label();
+    this.lblPowerToughness = new Label();
+    this.lblSetInfo = new Label();
+    this.lblRarity = new Label();
+    this.lblArtist = new Label();
+    this.lblPrices = new Label();
+    this.lblVariantsHeader = new Label();
+    this.listViewVariants = new ListView();
+    this.lblLegalities = new Label();
+    this.picCardImage = new PictureBox();
+
+    // Browse Sets Tab
+    this.txtSearchSet = new TextBox();
+    this.btnSearchSet = new Button();
+    this.listViewSets = new ListView();
+    this.panelSetDetails = new Panel();
+    this.lblSetName = new Label();
+    this.lblSetCode = new Label();
+    this.lblSetType = new Label();
+    this.lblCardCount = new Label();
+    this.lblReleaseDate = new Label();
+    this.btnViewSetCards = new Button();
+
+    // Set Cards Tab - Sorting Controls
+    this.lblCurrentSet = new Label();
+    this.lblJumpToCard = new Label();
+    this.txtJumpToCard = new TextBox();
+    this.lblJumpToCardStatus = new Label();
+    this.lblSortBy = new Label();
+    this.cmbSortBy = new ComboBox();
+    this.btnToggleSortOrder = new Button();
+    this.lblSortOrder = new Label();
+    // New controls for view and size
+    this.lblViewMode = new Label();
+    this.cmbViewMode = new ComboBox();
+    this.lblThumbSize = new Label();
+    this.cmbThumbSize = new ComboBox();
+    this.flowLayoutPanelCards = new FlowLayoutPanel();
+    this.listViewSetCards = new ListView();
+    this.panelCardInfo = new Panel();
+    this.picSelectedCard = new PictureBox();
+    this.lblSelectedCardName = new Label();
+    this.wbSelectedSetIcon = new WebView2();
+    this.lblSelectedCardValue = new Label();
+    this.btnLoadSelectedVariants = new Button();
+    this.btnAddSelectedToCollection = new Button();
+    this.lblSelectedCardType = new Label();
+    this.lblSelectedCardVariant = new Label();
+    this.lblSelectedCardText = new Label();
+    this.lblSelectedCardSet = new Label();
+    this.lblSelectedVariantsHeader = new Label();
+    this.listViewSelectedVariants = new ListView();
+
+    // Collections Tab
+    this.listViewCollections = new ListView();
+    this.panelCollectionDetails = new Panel();
+    this.lblCollectionName = new Label();
+    this.lblCollectionDescription = new Label();
+    this.lblCollectionStats = new Label();
+    this.treeViewCollectionFolders = new TreeView();
+    this.listViewCollectionCards = new ListView();
+    this.btnNewCollection = new Button();
+    this.btnEditCollection = new Button();
+    this.btnDeleteCollection = new Button();
+    this.btnNewCollectionFolder = new Button();
+    this.btnDeleteFolder = new Button();
+    this.btnRemoveCard = new Button();
+
+    this.menuStrip.SuspendLayout();
+    this.SuspendLayout();
+
+    // MenuStrip
+    this.menuStrip.Items.AddRange(
+        new ToolStripItem[] { this.fileToolStripMenuItem,
+                              this.themesToolStripMenuItem,
+                              this.helpToolStripMenuItem });
+    this.menuStrip.Location = new Point(0, 0);
+    this.menuStrip.Name = "menuStrip";
+    this.menuStrip.Size = new Size(1400, 28);
+    this.menuStrip.TabIndex = 0;
+
+    // fileToolStripMenuItem
+    this.fileToolStripMenuItem.DropDownItems.AddRange(
+        new ToolStripItem[] { this.preferencesToolStripMenuItem,
+                              this.toolStripSeparator1,
+                              this.exitToolStripMenuItem });
+    this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
+    this.fileToolStripMenuItem.Size = new Size(46, 24);
+    this.fileToolStripMenuItem.Text = "&File";
+
+    // preferencesToolStripMenuItem
+    this.preferencesToolStripMenuItem.Name = "preferencesToolStripMenuItem";
+    this.preferencesToolStripMenuItem.Size = new Size(180, 26);
+    this.preferencesToolStripMenuItem.Text = "&Preferences...";
+    this.preferencesToolStripMenuItem.Click +=
+        PreferencesToolStripMenuItem_Click;
+
+    // toolStripSeparator1
+    this.toolStripSeparator1.Name = "toolStripSeparator1";
+    this.toolStripSeparator1.Size = new Size(177, 6);
+
+    // exitToolStripMenuItem
+    this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+    this.exitToolStripMenuItem.Size = new Size(180, 26);
+    this.exitToolStripMenuItem.Text = "E&xit";
+    this.exitToolStripMenuItem.Click += ExitToolStripMenuItem_Click;
+
+    // themesToolStripMenuItem
+    this.themesToolStripMenuItem.Name = "themesToolStripMenuItem";
+    this.themesToolStripMenuItem.Size = new Size(74, 24);
+    this.themesToolStripMenuItem.Text = "&Themes";
+    this.themesToolStripMenuItem.DropDownOpening += ThemesToolStripMenuItem_DropDownOpening;
+
+    // helpToolStripMenuItem
+    this.helpToolStripMenuItem.DropDownItems.AddRange(
+        new ToolStripItem[] { this.aboutToolStripMenuItem });
+    this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
+    this.helpToolStripMenuItem.Size = new Size(55, 24);
+    this.helpToolStripMenuItem.Text = "&Help";
+
+    // aboutToolStripMenuItem
+    this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+    this.aboutToolStripMenuItem.Size = new Size(142, 26);
+    this.aboutToolStripMenuItem.Text = "&About";
+    this.aboutToolStripMenuItem.Click += AboutToolStripMenuItem_Click;
+
+    // TabControl
+    this.tabControl.Location = new Point(0, 28);
+    this.tabControl.Name = "tabControl";
+    this.tabControl.TabIndex = 1;
+    this.tabControl.Controls.Add(this.tabSearchCard);
+    this.tabControl.Controls.Add(this.tabBrowseSets);
+    this.tabControl.Controls.Add(this.tabSetCards);
+    this.tabControl.Controls.Add(this.tabCollections);
+    this.tabControl.Dock = DockStyle.Fill;
+
+    // Tab Pages
+    this.tabSearchCard.Text = "Search Card";
+    this.tabSearchCard.Name = "tabSearchCard";
+    this.tabSearchCard.Padding = new Padding(3);
+    this.tabSearchCard.Resize += TabSearchCard_Resize;
+
+    this.tabBrowseSets.Text = "Browse Sets";
+    this.tabBrowseSets.Name = "tabBrowseSets";
+    this.tabBrowseSets.Padding = new Padding(3);
+    this.tabBrowseSets.Resize += TabBrowseSets_Resize;
+
+    this.tabSetCards.Text = "Cards in Set";
+    this.tabSetCards.Name = "tabSetCards";
+    this.tabSetCards.Padding = new Padding(3);
+    this.tabSetCards.Resize += TabSetCards_Resize;
+
+    this.tabCollections.Text = "My Collections";
+    this.tabCollections.Name = "tabCollections";
+    this.tabCollections.Padding = new Padding(3);
+
+    InitializeSearchCardTab();
+    InitializeBrowseSetsTab();
+    InitializeSetCardsTab();
+    InitializeCollectionsTab();
+
+    // MainForm
+    this.AutoScaleDimensions = new SizeF(8F, 20F);
+    this.AutoScaleMode = AutoScaleMode.Font;
+    this.ClientSize = new Size(1400, 900);
+    this.Controls.Add(this.tabControl);
+    this.Controls.Add(this.menuStrip);
+    this.MainMenuStrip = this.menuStrip;
+    this.Name = "MainForm";
+    this.Text = "Pokémon Card Collector - Powered by TCGdex";
+    this.StartPosition = FormStartPosition.CenterScreen;
+    this.MinimumSize = new Size(700, 600);
+
+    this.menuStrip.ResumeLayout(false);
+    this.menuStrip.PerformLayout();
+    this.ResumeLayout(false);
+    this.PerformLayout();
+  }
+
+  private void InitializeSearchCardTab() {
+    // Search label and input (moved to the right of the image)
+    this.lblSearchCardPrompt = new Label();
+    this.lblSearchCardPrompt.Location = new Point(540, 0);
+    this.lblSearchCardPrompt.Size = new Size(200, 18);
+    this.lblSearchCardPrompt.Text = "Card name:";
+    this.lblSearchCardPrompt.TextAlign = ContentAlignment.MiddleLeft;
+    this.lblSearchCardPrompt.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+    // Move search field below the card image
+    this.txtSearchCard.Location = new Point(20, 490);
+    this.txtSearchCard.Size = new Size(300, 27);
+    this.txtSearchCard.BorderStyle = BorderStyle.FixedSingle;
+    this.txtSearchCard.BackColor = SystemColors.Window;
+    this.txtSearchCard.PlaceholderText = "Enter card name...";
+    this.txtSearchCard.KeyDown += TxtSearchCard_KeyDown;
+    this.txtSearchCard.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.btnSearchCard.Location = new Point(850, 20);
+    this.btnSearchCard.Size = new Size(100, 30);
+    this.btnSearchCard.Text = "Search";
+    this.btnSearchCard.Click += BtnSearchCard_Click;
+    this.btnSearchCard.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+    this.btnLoadVariants.Location = new Point(960, 20);
+    this.btnLoadVariants.Size = new Size(120, 30);
+    this.btnLoadVariants.Text = "Load Variants";
+    this.btnLoadVariants.Click += BtnLoadVariants_Click;
+    this.btnLoadVariants.Enabled = false;
+    this.btnLoadVariants.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+    // Load Variants button under image (search tab)
+    this.btnLoadVariantsImage = new Button();
+    this.btnLoadVariantsImage.Location = new Point(20, 450);
+    this.btnLoadVariantsImage.Size = new Size(120, 30);
+    this.btnLoadVariantsImage.Text = "Load Variants";
+    this.btnLoadVariantsImage.Click += BtnLoadVariants_Click;
+    this.btnLoadVariantsImage.Enabled = false;
+    this.btnLoadVariantsImage.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.btnAddToCollection.Location = new Point(1090, 20);
+    this.btnAddToCollection.Size = new Size(150, 30);
+    this.btnAddToCollection.Text = "? Add to Collection";
+    this.btnAddToCollection.Click += BtnAddToCollection_Click;
+    this.btnAddToCollection.Enabled = false;
+    this.btnAddToCollection.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+    this.btnAddToCollection.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+    // Webcam Scan button (placed under the card image for visibility)
+    this.btnScanWebcam = new Button();
+    this.btnScanWebcam.Location = new Point(150, 450);
+    this.btnScanWebcam.Size = new Size(130, 30);
+    this.btnScanWebcam.Text = "Scan Webcam";
+    this.btnScanWebcam.Click += BtnScanWebcam_Click;
+    this.btnScanWebcam.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+    this.btnScanWebcam.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+
+    // Card image (left side)
+    this.picCardImage.Location = new Point(20, 20);
+    this.picCardImage.Size = new Size(488, 420);
+    this.picCardImage.SizeMode = PictureBoxSizeMode.Zoom;
+    this.picCardImage.BorderStyle = BorderStyle.FixedSingle;
+    this.picCardImage.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+    this.picCardImage.Cursor = Cursors.Hand;
+    this.picCardImage.DoubleClick += PicCardImage_DoubleClick;
+
+    // Card details panel
+    this.panelCardDetails.Location = new Point(530, 70);
+    this.panelCardDetails.Size = new Size(840, 680);
+    this.panelCardDetails.AutoScroll = true;
+    this.panelCardDetails.BorderStyle = BorderStyle.FixedSingle;
+    this.panelCardDetails.Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                                   AnchorStyles.Left | AnchorStyles.Right;
+
+    int yPos = 10;
+    int spacing = 35;
+
+    // Set icon next to title (WebView2 to render SVG)
+    this.wbCardSetIcon.Location = new Point(10, yPos + 4);
+    this.wbCardSetIcon.Size = new Size(28, 28);
+    this.wbCardSetIcon.AllowExternalDrop = false;
+    this.wbCardSetIcon.DefaultBackgroundColor = Color.Transparent;
+    this.wbCardSetIcon.ZoomFactor = 1D;
+
+    this.lblCardName.Location = new Point(44, yPos);
+    this.lblCardName.Size = new Size(766, 30);
+    this.lblCardName.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+    yPos += spacing + 5;
+
+    // Card Value - Prominent display
+    this.lblCardValue.Location = new Point(10, yPos);
+    this.lblCardValue.Size = new Size(800, 90);
+    this.lblCardValue.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+    this.lblCardValue.ForeColor = Color.DarkGreen;
+    yPos += 100;
+
+    this.lblManaCost.Location = new Point(10, yPos);
+    this.lblManaCost.Size = new Size(800, 25);
+    this.lblManaCost.Font = new Font("Segoe UI", 10F);
+    yPos += spacing;
+
+    this.lblType.Location = new Point(10, yPos);
+    this.lblType.Size = new Size(800, 25);
+    this.lblType.Font = new Font("Segoe UI", 10F);
+    yPos += spacing;
+
+    this.lblOracleText.Location = new Point(10, yPos);
+    this.lblOracleText.Size = new Size(800, 120);
+    this.lblOracleText.Font = new Font("Segoe UI", 9F);
+    yPos += 130;
+
+    this.lblPowerToughness.Location = new Point(10, yPos);
+    this.lblPowerToughness.Size = new Size(800, 25);
+    this.lblPowerToughness.Font = new Font("Segoe UI", 10F);
+    yPos += spacing;
+
+    this.lblSetInfo.Location = new Point(10, yPos);
+    this.lblSetInfo.Size = new Size(800, 25);
+    this.lblSetInfo.Font = new Font("Segoe UI", 9F);
+    yPos += spacing;
+
+    this.lblRarity.Location = new Point(10, yPos);
+    this.lblRarity.Size = new Size(800, 25);
+    this.lblRarity.Font = new Font("Segoe UI", 9F);
+    yPos += spacing;
+
+    this.lblArtist.Location = new Point(10, yPos);
+    this.lblArtist.Size = new Size(800, 25);
+    this.lblArtist.Font = new Font("Segoe UI", 9F);
+    yPos += spacing;
+
+    this.lblPrices.Location = new Point(10, yPos);
+    this.lblPrices.Size = new Size(800, 140);
+    this.lblPrices.Font = new Font("Segoe UI", 9F);
+    yPos += 150;
+
+    this.lblVariantsHeader.Location = new Point(10, yPos);
+    this.lblVariantsHeader.Size = new Size(800, 30);
+    this.lblVariantsHeader.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+    this.lblVariantsHeader.Text = "Variants & Printings:";
+    yPos += 35;
+
+    this.listViewVariants.Location = new Point(10, yPos);
+    this.listViewVariants.Size = new Size(800, 200);
+    this.listViewVariants.View = View.Details;
+    this.listViewVariants.FullRowSelect = true;
+    this.listViewVariants.GridLines = true;
+    this.listViewVariants.Columns.Add("Set", 120);
+    this.listViewVariants.Columns.Add("Physical Variant", 320);
+    this.listViewVariants.Columns.Add("Collector #", 80);
+    this.listViewVariants.Columns.Add("USD / GBP est.", 190);
+    this.listViewVariants.Columns.Add("EUR / GBP est.", 190);
+    this.listViewVariants.Columns.Add("Released", 90);
+    this.listViewVariants.SelectedIndexChanged +=
+        ListViewVariants_SelectedIndexChanged;
+
+    // loading progress for variants
+    this.prgLoadingVariants = new ProgressBar();
+    this.prgLoadingVariants.Location = new Point(10, yPos - 30);
+    this.prgLoadingVariants.Size = new Size(200, 18);
+    this.prgLoadingVariants.Style = ProgressBarStyle.Marquee;
+    this.prgLoadingVariants.MarqueeAnimationSpeed = 30;
+    this.prgLoadingVariants.Visible = false;
+    yPos += 210;
+
+    this.lblLegalities.Location = new Point(10, yPos);
+    this.lblLegalities.Size = new Size(800, 200);
+    this.lblLegalities.Font = new Font("Segoe UI", 8F);
+
+    this.panelCardDetails.Controls.Add(this.wbCardSetIcon);
+    this.panelCardDetails.Controls.Add(this.lblCardName);
+    this.panelCardDetails.Controls.Add(this.lblCardValue);
+    this.panelCardDetails.Controls.Add(this.lblManaCost);
+    this.panelCardDetails.Controls.Add(this.lblType);
+    this.panelCardDetails.Controls.Add(this.lblOracleText);
+    this.panelCardDetails.Controls.Add(this.lblPowerToughness);
+    this.panelCardDetails.Controls.Add(this.lblSetInfo);
+    this.panelCardDetails.Controls.Add(this.lblRarity);
+    this.panelCardDetails.Controls.Add(this.lblArtist);
+    this.panelCardDetails.Controls.Add(this.lblPrices);
+    this.panelCardDetails.Controls.Add(this.lblVariantsHeader);
+    this.panelCardDetails.Controls.Add(this.listViewVariants);
+    this.panelCardDetails.Controls.Add(this.prgLoadingVariants);
+    this.panelCardDetails.Controls.Add(this.lblLegalities);
+
+    this.tabSearchCard.Controls.Add(this.lblSearchCardPrompt);
+    this.tabSearchCard.Controls.Add(this.txtSearchCard);
+    this.tabSearchCard.Controls.Add(this.btnSearchCard);
+    this.tabSearchCard.Controls.Add(this.btnLoadVariants);
+    this.tabSearchCard.Controls.Add(this.btnAddToCollection);
+    this.tabSearchCard.Controls.Add(this.btnScanWebcam);
+    this.tabSearchCard.Controls.Add(this.picCardImage);
+    this.tabSearchCard.Controls.Add(this.btnLoadVariantsImage);
+    this.tabSearchCard.Controls.Add(this.panelCardDetails);
+
+    // Ensure search controls are in front of card image if overlap occurs
+    this.lblSearchCardPrompt.BringToFront();
+    this.txtSearchCard.BringToFront();
+    this.btnSearchCard.BringToFront();
+    this.btnLoadVariants.BringToFront();
+    this.btnAddToCollection.BringToFront();
+    // Ensure set icon and title are on top
+    this.wbCardSetIcon.BringToFront();
+    this.lblCardName.BringToFront();
+
+  }
+
+  private void InitializeBrowseSetsTab() {
+    // Keep existing implementation
+    this.txtSearchSet.Location = new Point(20, 20);
+    this.txtSearchSet.Size = new Size(300, 27);
+    this.txtSearchSet.PlaceholderText = "Filter sets...";
+    this.txtSearchSet.TextChanged += TxtSearchSet_TextChanged;
+    this.txtSearchSet.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.btnSearchSet.Location = new Point(330, 20);
+    this.btnSearchSet.Size = new Size(120, 30);
+    this.btnSearchSet.Text = "Load All Sets";
+    this.btnSearchSet.Click += BtnSearchSet_Click;
+    this.btnSearchSet.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    // Calculate proper height for ListView (from top of list to bottom of tab,
+    // minus margin) This will be dynamically adjusted in resize handler
+    this.listViewSets.Location = new Point(20, 70);
+    this.listViewSets.Size = new Size(650, 750);
+    this.listViewSets.View = View.Details;
+    this.listViewSets.FullRowSelect = true;
+    this.listViewSets.GridLines = true;
+    this.listViewSets.Columns.Add("Name", 300);
+    this.listViewSets.Columns.Add("Code", 60);
+    this.listViewSets.Columns.Add("Cards", 60);
+    this.listViewSets.Columns.Add("Released", 100);
+    this.listViewSets.Columns.Add("Type", 120);
+    this.listViewSets.SelectedIndexChanged += ListViewSets_SelectedIndexChanged;
+    this.listViewSets.DoubleClick += ListViewSets_DoubleClick;
+    this.listViewSets.Anchor =
+        AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+
+    this.panelSetDetails.Location = new Point(690, 70);
+    this.panelSetDetails.Size = new Size(680, 750);
+    this.panelSetDetails.BorderStyle = BorderStyle.FixedSingle;
+    this.panelSetDetails.Padding = new Padding(10);
+    this.panelSetDetails.Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                                  AnchorStyles.Left | AnchorStyles.Right;
+
+    int yPos = 20;
+
+    this.lblSetName.Location = new Point(20, yPos);
+    this.lblSetName.Size = new Size(640, 40);
+    this.lblSetName.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+    yPos += 60;
+
+    this.lblSetCode.Location = new Point(20, yPos);
+    this.lblSetCode.Size = new Size(640, 30);
+    this.lblSetCode.Font = new Font("Segoe UI", 11F);
+    yPos += 40;
+
+    this.lblSetType.Location = new Point(20, yPos);
+    this.lblSetType.Size = new Size(640, 30);
+    this.lblSetType.Font = new Font("Segoe UI", 10F);
+    yPos += 40;
+
+    this.lblCardCount.Location = new Point(20, yPos);
+    this.lblCardCount.Size = new Size(640, 30);
+    this.lblCardCount.Font = new Font("Segoe UI", 10F);
+    yPos += 40;
+
+    this.lblReleaseDate.Location = new Point(20, yPos);
+    this.lblReleaseDate.Size = new Size(640, 30);
+    this.lblReleaseDate.Font = new Font("Segoe UI", 10F);
+    yPos += 60;
+
+    this.btnViewSetCards.Location = new Point(20, yPos);
+    this.btnViewSetCards.Size = new Size(200, 40);
+    this.btnViewSetCards.Text = "View Cards in Set";
+    this.btnViewSetCards.Font = new Font("Segoe UI", 10F);
+    this.btnViewSetCards.Click += BtnViewSetCards_Click;
+
+    this.panelSetDetails.Controls.Add(this.lblSetName);
+    this.panelSetDetails.Controls.Add(this.lblSetCode);
+    this.panelSetDetails.Controls.Add(this.lblSetType);
+    this.panelSetDetails.Controls.Add(this.lblCardCount);
+    this.panelSetDetails.Controls.Add(this.lblReleaseDate);
+    this.panelSetDetails.Controls.Add(this.btnViewSetCards);
+
+    this.tabBrowseSets.Controls.Add(this.txtSearchSet);
+    this.tabBrowseSets.Controls.Add(this.btnSearchSet);
+    this.tabBrowseSets.Controls.Add(this.listViewSets);
+    this.tabBrowseSets.Controls.Add(this.panelSetDetails);
+  }
+
+  private void InitializeSetCardsTab() {
+    this.lblCurrentSet.Location = new Point(20, 20);
+    this.lblCurrentSet.Size = new Size(800, 30);
+    this.lblCurrentSet.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+    this.lblCurrentSet.Anchor =
+        AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+    this.lblSortBy.Location = new Point(20, 60);
+    this.lblSortBy.Size = new Size(60, 25);
+    this.lblSortBy.Text = "Sort by:";
+    this.lblSortBy.TextAlign = ContentAlignment.MiddleRight;
+    this.lblSortBy.Font = new Font("Segoe UI", 9F);
+    this.lblSortBy.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.cmbSortBy.Location = new Point(85, 60);
+    this.cmbSortBy.Size = new Size(150, 28);
+    this.cmbSortBy.DropDownStyle = ComboBoxStyle.DropDownList;
+    this.cmbSortBy.Items.AddRange(
+        new object[] { "Card Number", "Value (Price)", "Rarity", "Name" });
+    this.cmbSortBy.SelectedIndex = 0;
+    this.cmbSortBy.SelectedIndexChanged += CmbSortBy_SelectedIndexChanged;
+    this.cmbSortBy.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.btnToggleSortOrder.Location = new Point(245, 60);
+    this.btnToggleSortOrder.Size = new Size(100, 28);
+    this.btnToggleSortOrder.Text = "? Ascending";
+    this.btnToggleSortOrder.Click += BtnToggleSortOrder_Click;
+    this.btnToggleSortOrder.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.lblSortOrder.Location = new Point(355, 60);
+    this.lblSortOrder.Size = new Size(300, 25);
+    this.lblSortOrder.TextAlign = ContentAlignment.MiddleLeft;
+    this.lblSortOrder.Font = new Font("Segoe UI", 8F, FontStyle.Italic);
+    this.lblSortOrder.ForeColor = Color.Gray;
+    this.lblSortOrder.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    // View mode label and combo
+    this.lblViewMode.Location = new Point(670, 60);
+    this.lblViewMode.Size = new Size(80, 25);
+    this.lblViewMode.Text = "View:";
+    this.lblViewMode.TextAlign = ContentAlignment.MiddleRight;
+    this.lblViewMode.Font = new Font("Segoe UI", 9F);
+    this.lblViewMode.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.cmbViewMode.Location = new Point(755, 60);
+    this.cmbViewMode.Size = new Size(120, 28);
+    this.cmbViewMode.DropDownStyle = ComboBoxStyle.DropDownList;
+    this.cmbViewMode.Items.AddRange(new object[] { "Thumbnails", "List" });
+    this.cmbViewMode.SelectedIndex = 0;
+    this.cmbViewMode.SelectedIndexChanged += CmbViewMode_SelectedIndexChanged;
+    this.cmbViewMode.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    // Thumbnail size label and combo
+    this.lblThumbSize.Location = new Point(885, 60);
+    this.lblThumbSize.Size = new Size(100, 25);
+    this.lblThumbSize.Text = "Thumb Size:";
+    this.lblThumbSize.TextAlign = ContentAlignment.MiddleRight;
+    this.lblThumbSize.Font = new Font("Segoe UI", 9F);
+    this.lblThumbSize.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.cmbThumbSize.Location = new Point(990, 60);
+    this.cmbThumbSize.Size = new Size(120, 28);
+    this.cmbThumbSize.DropDownStyle = ComboBoxStyle.DropDownList;
+    this.cmbThumbSize.Items.AddRange(new object[] { "Small", "Medium", "Large" });
+    this.cmbThumbSize.SelectedIndex = 1; // default Medium
+    this.cmbThumbSize.SelectedIndexChanged += CmbThumbSize_SelectedIndexChanged;
+    this.cmbThumbSize.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.lblJumpToCard.Location = new Point(20, 95);
+    this.lblJumpToCard.Size = new Size(100, 25);
+    this.lblJumpToCard.Text = "Jump to card #:";
+    this.lblJumpToCard.TextAlign = ContentAlignment.MiddleLeft;
+
+    this.txtJumpToCard.Location = new Point(125, 95);
+    this.txtJumpToCard.Size = new Size(100, 25);
+    this.txtJumpToCard.AccessibleName = "Jump to collector number";
+    this.txtJumpToCard.TextChanged += TxtJumpToCard_TextChanged;
+    this.txtJumpToCard.KeyDown += TxtJumpToCard_KeyDown;
+
+    this.lblJumpToCardStatus.Location = new Point(235, 95);
+    this.lblJumpToCardStatus.Size = new Size(420, 25);
+    this.lblJumpToCardStatus.TextAlign = ContentAlignment.MiddleLeft;
+
+    this.flowLayoutPanelCards.Location = new Point(20, 130);
+    this.flowLayoutPanelCards.Size = new Size(650, 720);
+    this.flowLayoutPanelCards.AutoScroll = true;
+    this.flowLayoutPanelCards.BorderStyle = BorderStyle.FixedSingle;
+    this.flowLayoutPanelCards.WrapContents = true;
+    this.flowLayoutPanelCards.Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                                       AnchorStyles.Left | AnchorStyles.Right;
+
+    // ListView for list mode
+    this.listViewSetCards.Location = new Point(20, 130);
+    this.listViewSetCards.Size = new Size(650, 720);
+    this.listViewSetCards.View = View.Details;
+    this.listViewSetCards.FullRowSelect = true;
+    this.listViewSetCards.GridLines = true;
+    this.listViewSetCards.Columns.Add("#", 60);
+    this.listViewSetCards.Columns.Add("Name", 240);
+    this.listViewSetCards.Columns.Add("Rarity", 90);
+    this.listViewSetCards.Columns.Add("Price / GBP est.", 190);
+    this.listViewSetCards.Columns.Add("Set", 140);
+    this.listViewSetCards.Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                                   AnchorStyles.Left | AnchorStyles.Right;
+    this.listViewSetCards.Visible = false;
+
+    this.panelCardInfo.Location = new Point(690, 130);
+    this.panelCardInfo.Size = new Size(680, 720);
+    this.panelCardInfo.BorderStyle = BorderStyle.FixedSingle;
+    this.panelCardInfo.AutoScroll = true;
+    this.panelCardInfo.Anchor =
+        AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+
+    this.picSelectedCard.Location = new Point(20, 20);
+    this.picSelectedCard.Size = new Size(280, 390);
+    this.picSelectedCard.SizeMode = PictureBoxSizeMode.Zoom;
+    this.picSelectedCard.BorderStyle = BorderStyle.FixedSingle;
+    this.picSelectedCard.Cursor = Cursors.Hand;
+    this.picSelectedCard.DoubleClick += PicSelectedCard_DoubleClick;
+
+    int yPos = 20;
+    int xPos = 320;
+
+    // Set icon next to selected title (WebView2)
+    this.wbSelectedSetIcon.Location = new Point(xPos, yPos + 2);
+    this.wbSelectedSetIcon.Size = new Size(24, 24);
+    this.wbSelectedSetIcon.AllowExternalDrop = false;
+    this.wbSelectedSetIcon.DefaultBackgroundColor = Color.Transparent;
+    this.wbSelectedSetIcon.ZoomFactor = 1D;
+
+    this.lblSelectedCardName.Location = new Point(xPos + 30, yPos);
+    this.lblSelectedCardName.Size = new Size(310, 30);
+    this.lblSelectedCardName.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+    yPos += 35;
+
+    this.lblSelectedCardValue.Location = new Point(xPos, yPos);
+    this.lblSelectedCardValue.Size = new Size(340, 30);
+    this.lblSelectedCardValue.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+    this.lblSelectedCardValue.ForeColor = Color.DarkGreen;
+    yPos += 35;
+
+    this.btnLoadSelectedVariants.Location = new Point(xPos, yPos);
+    this.btnLoadSelectedVariants.Size = new Size(150, 28);
+    this.btnLoadSelectedVariants.Text = "Load All Variants";
+    this.btnLoadSelectedVariants.Font = new Font("Segoe UI", 8F);
+    this.btnLoadSelectedVariants.Click += BtnLoadSelectedVariants_Click;
+    this.btnLoadSelectedVariants.Enabled = false;
+    yPos += 35;
+
+    this.btnAddSelectedToCollection.Location = new Point(xPos, yPos);
+    this.btnAddSelectedToCollection.Size = new Size(160, 28);
+    this.btnAddSelectedToCollection.Text = "? Add to Collection";
+    this.btnAddSelectedToCollection.Font =
+        new Font("Segoe UI", 8F, FontStyle.Bold);
+    this.btnAddSelectedToCollection.Click += BtnAddSelectedToCollection_Click;
+    this.btnAddSelectedToCollection.Enabled = false;
+    yPos += 40;
+
+    this.lblSelectedCardType.Location = new Point(xPos, yPos);
+    this.lblSelectedCardType.Size = new Size(340, 40);
+    this.lblSelectedCardType.Font = new Font("Segoe UI", 8F);
+    yPos += 45;
+
+    this.lblSelectedCardVariant.Location = new Point(xPos, yPos);
+    this.lblSelectedCardVariant.Size = new Size(340, 30);
+    this.lblSelectedCardVariant.Font = new Font("Segoe UI", 7F);
+    this.lblSelectedCardVariant.ForeColor = Color.DarkBlue;
+    yPos += 35;
+
+    this.lblSelectedCardText.Location = new Point(xPos, yPos);
+    this.lblSelectedCardText.Size = new Size(340, 100);
+    this.lblSelectedCardText.Font = new Font("Segoe UI", 7F);
+    yPos += 105;
+
+    this.lblSelectedCardSet.Location = new Point(xPos, yPos);
+    this.lblSelectedCardSet.Size = new Size(340, 60);
+    this.lblSelectedCardSet.Font = new Font("Segoe UI", 7F);
+    yPos += 65;
+
+    this.lblSelectedVariantsHeader.Location = new Point(20, 420);
+    this.lblSelectedVariantsHeader.Size = new Size(640, 25);
+    this.lblSelectedVariantsHeader.Font =
+        new Font("Segoe UI", 10F, FontStyle.Bold);
+    this.lblSelectedVariantsHeader.Text = "All Variants:";
+
+    this.listViewSelectedVariants.Location = new Point(20, 450);
+    this.listViewSelectedVariants.Size = new Size(640, 280);
+    this.listViewSelectedVariants.View = View.Details;
+    this.listViewSelectedVariants.FullRowSelect = true;
+    this.listViewSelectedVariants.GridLines = true;
+    this.listViewSelectedVariants.Columns.Add("Set", 100);
+    this.listViewSelectedVariants.Columns.Add("Physical Variant", 320);
+    this.listViewSelectedVariants.Columns.Add("#", 50);
+    this.listViewSelectedVariants.Columns.Add("USD / GBP est.", 190);
+    this.listViewSelectedVariants.Columns.Add("EUR / GBP est.", 190);
+    this.listViewSelectedVariants.Columns.Add("Released", 80);
+    this.listViewSelectedVariants.SelectedIndexChanged +=
+        ListViewSelectedVariants_SelectedIndexChanged;
+
+    this.panelCardInfo.Controls.Add(this.picSelectedCard);
+    this.panelCardInfo.Controls.Add(this.wbSelectedSetIcon);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardName);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardValue);
+    this.panelCardInfo.Controls.Add(this.btnLoadSelectedVariants);
+    this.panelCardInfo.Controls.Add(this.btnAddSelectedToCollection);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardType);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardVariant);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardText);
+    this.panelCardInfo.Controls.Add(this.lblSelectedCardSet);
+    this.panelCardInfo.Controls.Add(this.lblSelectedVariantsHeader);
+    this.panelCardInfo.Controls.Add(this.listViewSelectedVariants);
+
+    // Ensure set icon and title are on top
+    this.wbCardSetIcon.BringToFront();
+    this.lblCardName.BringToFront();
+
+    this.tabSetCards.Controls.Add(this.lblCurrentSet);
+    this.tabSetCards.Controls.Add(this.lblJumpToCard);
+    this.tabSetCards.Controls.Add(this.txtJumpToCard);
+    this.tabSetCards.Controls.Add(this.lblJumpToCardStatus);
+    this.tabSetCards.Controls.Add(this.lblSortBy);
+    this.tabSetCards.Controls.Add(this.cmbSortBy);
+    this.tabSetCards.Controls.Add(this.btnToggleSortOrder);
+    this.tabSetCards.Controls.Add(this.lblSortOrder);
+    this.tabSetCards.Controls.Add(this.lblViewMode);
+    this.tabSetCards.Controls.Add(this.cmbViewMode);
+    this.tabSetCards.Controls.Add(this.lblThumbSize);
+    this.tabSetCards.Controls.Add(this.cmbThumbSize);
+    this.tabSetCards.Controls.Add(this.flowLayoutPanelCards);
+    this.tabSetCards.Controls.Add(this.listViewSetCards);
+    this.tabSetCards.Controls.Add(this.panelCardInfo);
+
+    this.prgLoadingSetCards = new ProgressBar();
+    this.prgLoadingSetCards.Location = new Point(20, 52);
+    this.prgLoadingSetCards.Size = new Size(300, 8);
+    this.prgLoadingSetCards.Style = ProgressBarStyle.Marquee;
+    this.prgLoadingSetCards.Visible = false;
+    this.prgLoadingSetCards.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+    this.tabSetCards.Controls.Add(this.prgLoadingSetCards);
+  }
+
+  private void InitializeCollectionsTab() {
+    // Collections list on the left
+    this.listViewCollections.Location = new Point(20, 20);
+    this.listViewCollections.Size = new Size(300, 820);
+    this.listViewCollections.View = View.Details;
+    this.listViewCollections.FullRowSelect = true;
+    this.listViewCollections.GridLines = true;
+    this.listViewCollections.Columns.Add("Collection", 200);
+    this.listViewCollections.Columns.Add("Cards", 90);
+    this.listViewCollections.SelectedIndexChanged +=
+        ListViewCollections_SelectedIndexChanged;
+    this.listViewCollections.Anchor =
+        AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+
+    // Collection management buttons
+    this.btnNewCollection.Location = new Point(330, 20);
+    this.btnNewCollection.Size = new Size(140, 35);
+    this.btnNewCollection.Text = "New Collection";
+    this.btnNewCollection.Font = new Font("Segoe UI", 9F);
+    this.btnNewCollection.Click += BtnNewCollection_Click;
+
+    this.btnEditCollection.Location = new Point(480, 20);
+    this.btnEditCollection.Size = new Size(120, 35);
+    this.btnEditCollection.Text = "Edit";
+    this.btnEditCollection.Font = new Font("Segoe UI", 9F);
+    this.btnEditCollection.Click += BtnEditCollection_Click;
+    this.btnEditCollection.Enabled = false;
+
+    this.btnDeleteCollection.Location = new Point(610, 20);
+    this.btnDeleteCollection.Size = new Size(120, 35);
+    this.btnDeleteCollection.Text = "Delete";
+    this.btnDeleteCollection.Font = new Font("Segoe UI", 9F);
+    this.btnDeleteCollection.Click += BtnDeleteCollection_Click;
+    this.btnDeleteCollection.Enabled = false;
+
+    // Collection details panel
+    this.panelCollectionDetails.Location = new Point(330, 70);
+    this.panelCollectionDetails.Size = new Size(1040, 100);
+    this.panelCollectionDetails.BorderStyle = BorderStyle.FixedSingle;
+    this.panelCollectionDetails.Anchor =
+        AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+    this.lblCollectionName.Location = new Point(10, 10);
+    this.lblCollectionName.Size = new Size(1020, 30);
+    this.lblCollectionName.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+    this.lblCollectionName.Text = "Select a collection";
+
+    this.lblCollectionDescription.Location = new Point(10, 45);
+    this.lblCollectionDescription.Size = new Size(1020, 20);
+    this.lblCollectionDescription.Font = new Font("Segoe UI", 9F);
+
+    this.lblCollectionStats.Location = new Point(10, 65);
+    this.lblCollectionStats.Size = new Size(1020, 33);
+    this.lblCollectionStats.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+    this.lblCollectionStats.ForeColor = Color.DarkGreen;
+
+    this.panelCollectionDetails.Controls.Add(this.lblCollectionName);
+    this.panelCollectionDetails.Controls.Add(this.lblCollectionDescription);
+    this.panelCollectionDetails.Controls.Add(this.lblCollectionStats);
+
+    // Folder tree view
+    this.treeViewCollectionFolders.Location = new Point(330, 180);
+    this.treeViewCollectionFolders.Size = new Size(300, 660);
+    this.treeViewCollectionFolders.Font = new Font("Segoe UI", 10F);
+    this.treeViewCollectionFolders.AfterSelect +=
+        TreeViewCollectionFolders_AfterSelect;
+    this.treeViewCollectionFolders.Anchor =
+        AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+
+    // Folder management buttons
+    this.btnNewCollectionFolder.Location = new Point(640, 180);
+    this.btnNewCollectionFolder.Size = new Size(120, 30);
+    this.btnNewCollectionFolder.Text = "New Folder";
+    this.btnNewCollectionFolder.Font = new Font("Segoe UI", 9F);
+    this.btnNewCollectionFolder.Click += BtnNewCollectionFolder_Click;
+    this.btnNewCollectionFolder.Enabled = false;
+
+    this.btnDeleteFolder.Location = new Point(640, 220);
+    this.btnDeleteFolder.Size = new Size(120, 30);
+    this.btnDeleteFolder.Text = "Delete Folder";
+    this.btnDeleteFolder.Font = new Font("Segoe UI", 9F);
+    this.btnDeleteFolder.Click += BtnDeleteFolder_Click;
+    this.btnDeleteFolder.Enabled = false;
+
+    // Cards list
+    this.listViewCollectionCards.Location = new Point(770, 180);
+    this.listViewCollectionCards.Size = new Size(600, 620);
+    this.listViewCollectionCards.View = View.Details;
+    this.listViewCollectionCards.FullRowSelect = true;
+    this.listViewCollectionCards.GridLines = true;
+    this.listViewCollectionCards.Columns.Add("Card Name", 200);
+    this.listViewCollectionCards.Columns.Add("Set", 120);
+    this.listViewCollectionCards.Columns.Add("Collector #", 80);
+    this.listViewCollectionCards.Columns.Add("Qty", 50);
+    this.listViewCollectionCards.Columns.Add("Variant", 320);
+    this.listViewCollectionCards.Columns.Add("Condition", 80);
+    this.listViewCollectionCards.Columns.Add("Value / GBP est.", 340);
+    this.listViewCollectionCards.Anchor =
+        AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left |
+        AnchorStyles.Right;
+
+    this.btnRemoveCard.Location = new Point(770, 810);
+    this.btnRemoveCard.Size = new Size(120, 30);
+    this.btnRemoveCard.Text = "Remove Card";
+    this.btnRemoveCard.Font = new Font("Segoe UI", 9F);
+    this.btnRemoveCard.Click += BtnRemoveCard_Click;
+    this.btnRemoveCard.Enabled = false;
+    this.btnRemoveCard.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+    this.tabCollections.Controls.Add(this.listViewCollections);
+    this.tabCollections.Controls.Add(this.btnNewCollection);
+    this.tabCollections.Controls.Add(this.btnEditCollection);
+    this.tabCollections.Controls.Add(this.btnDeleteCollection);
+    this.tabCollections.Controls.Add(this.panelCollectionDetails);
+    this.tabCollections.Controls.Add(this.treeViewCollectionFolders);
+    this.tabCollections.Controls.Add(this.btnNewCollectionFolder);
+    this.tabCollections.Controls.Add(this.btnDeleteFolder);
+    this.tabCollections.Controls.Add(this.listViewCollectionCards);
+    this.tabCollections.Controls.Add(this.btnRemoveCard);
+  }
+
+  private MenuStrip menuStrip;
+  private ToolStripMenuItem fileToolStripMenuItem;
+  private ToolStripMenuItem preferencesToolStripMenuItem;
+  private ToolStripSeparator toolStripSeparator1;
+  private ToolStripMenuItem exitToolStripMenuItem;
+  private ToolStripMenuItem themesToolStripMenuItem;
+  private ToolStripMenuItem helpToolStripMenuItem;
+  private ToolStripMenuItem aboutToolStripMenuItem;
+
+  private TabControl tabControl;
+  private TabPage tabSearchCard;
+  private TabPage tabBrowseSets;
+  private TabPage tabSetCards;
+  private TabPage tabCollections;
+
+  private Label lblSearchCardPrompt;
+  private TextBox txtSearchCard;
+  private Button btnSearchCard;
+  private Button btnLoadVariants;
+  private Button btnAddToCollection;
+  private Button btnScanWebcam;
+  private PictureBox picCardImage;
+  private Panel panelCardDetails;
+  private WebView2 wbCardSetIcon;
+  private Label lblCardName;
+  private Label lblCardValue;
+  private Label lblManaCost;
+  private Label lblType;
+  private Label lblOracleText;
+  private Label lblPowerToughness;
+  private Label lblSetInfo;
+  private Label lblRarity;
+  private Label lblArtist;
+  private Label lblPrices;
+  private Label lblVariantsHeader;
+  private ListView listViewVariants;
+  private Label lblLegalities;
+  private Button btnLoadVariantsImage;
+  private ProgressBar prgLoadingVariants;
+
+  private TextBox txtSearchSet;
+  private Button btnSearchSet;
+  private ListView listViewSets;
+  private Panel panelSetDetails;
+  private Label lblSetName;
+  private Label lblSetCode;
+  private Label lblSetType;
+  private Label lblCardCount;
+  private Label lblReleaseDate;
+  private Button btnViewSetCards;
+
+  private Label lblCurrentSet;
+  private Label lblJumpToCard;
+  private TextBox txtJumpToCard;
+  private Label lblJumpToCardStatus;
+  private Label lblSortBy;
+  private ComboBox cmbSortBy;
+  private Button btnToggleSortOrder;
+  private Label lblSortOrder;
+  private FlowLayoutPanel flowLayoutPanelCards;
+  private ListView listViewSetCards;
+  private Panel panelCardInfo;
+  private PictureBox picSelectedCard;
+  private WebView2 wbSelectedSetIcon;
+  private Label lblSelectedCardName;
+  private Label lblSelectedCardValue;
+  private Button btnLoadSelectedVariants;
+  private Button btnAddSelectedToCollection;
+  private Label lblSelectedCardType;
+  private Label lblSelectedCardVariant;
+  private Label lblSelectedCardText;
+  private Label lblSelectedCardSet;
+  private Label lblSelectedVariantsHeader;
+  private ListView listViewSelectedVariants;
+  private Label lblViewMode;
+  private ComboBox cmbViewMode;
+  private Label lblThumbSize;
+  private ComboBox cmbThumbSize;
+
+  // Collections Tab
+  private ListView listViewCollections;
+  private Panel panelCollectionDetails;
+  private Label lblCollectionName;
+  private Label lblCollectionDescription;
+  private Label lblCollectionStats;
+  private TreeView treeViewCollectionFolders;
+  private ListView listViewCollectionCards;
+  private Button btnNewCollection;
+  private Button btnEditCollection;
+  private Button btnDeleteCollection;
+  private Button btnNewCollectionFolder;
+  private Button btnDeleteFolder;
+  private Button btnRemoveCard;
+
+  // fields (near other set cards controls)
+  private ProgressBar prgLoadingSetCards;
+}
+}

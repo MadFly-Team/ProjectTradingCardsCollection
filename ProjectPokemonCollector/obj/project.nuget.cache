@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "dgSpecHash": "lxrnPHgqVvI=",
+  "success": true,
+  "projectFilePath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\neilb\\.nuget\\packages\\aforge\\2.2.5\\aforge.2.2.5.nupkg.sha512",
+    "C:\\Users\\neilb\\.nuget\\packages\\aforge.video\\2.2.5\\aforge.video.2.2.5.nupkg.sha512",
+    "C:\\Users\\neilb\\.nuget\\packages\\aforge.video.directshow\\2.2.5\\aforge.video.directshow.2.2.5.nupkg.sha512",
+    "C:\\Users\\neilb\\.nuget\\packages\\microsoft.web.webview2\\1.0.1901.177\\microsoft.web.webview2.1.0.1901.177.nupkg.sha512",
+    "C:\\Users\\neilb\\.nuget\\packages\\tesseract\\5.2.0\\tesseract.5.2.0.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "message": "ProjectPokemonCollector depends on Microsoft.Web.WebView2 (>= 1.0.1901.40) but Microsoft.Web.WebView2 1.0.1901.40 was not found. Microsoft.Web.WebView2 1.0.1901.177 was resolved instead.",
+      "projectPath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "libraryId": "Microsoft.Web.WebView2",
+      "targetGraphs": [
+        "net10.0-windows"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "message": "Package 'AForge 2.2.5' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0-windows7.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "libraryId": "AForge",
+      "targetGraphs": [
+        "net10.0-windows"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "message": "Package 'AForge.Video 2.2.5' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0-windows7.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "libraryId": "AForge.Video",
+      "targetGraphs": [
+        "net10.0-windows"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "message": "Package 'AForge.Video.DirectShow 2.2.5' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0-windows7.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\NewProjects\\Utilities\\ProjectMTGCollector\\ProjectPokemonCollector\\ProjectPokemonCollector.csproj",
+      "libraryId": "AForge.Video.DirectShow",
+      "targetGraphs": [
+        "net10.0-windows"
+      ]
+    }
+  ]
+}

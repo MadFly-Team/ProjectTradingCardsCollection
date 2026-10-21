@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ProjectMTGCollector/ProjectMTGCollector.csproj" />
+  <Project Path="ProjectPokemonCollector/ProjectPokemonCollector.csproj" />
+</Solution>

@@ -1,0 +1,137 @@
+﻿using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
+using ProjectMTGCollector.Services;
+
+const string cardJson = """
+{"id":"sv01-001","name":"Pineco","localId":"001","category":"Pokemon","hp":60,"attacks":[{"name":"Guard Press","damage":"10+"}],"set":{"id":"sv01","name":"Scarlet & Violet"},"pricing":{"tcgplayer":{"normal":{"marketPrice":"0.12"},"reverse-holofoil":{"marketPrice":0.2}},"cardmarket":{"avg":0.03}}}
+""";
+const string setJson = """
+{"id":"sv01","name":"Scarlet & Violet","releaseDate":"2023-03-31","cardCount":{"total":258},"cards":[{"id":"sv01-001","name":"Pineco","localId":"001"}]}
+""";
+static void Check(bool condition, string message)
+{
+    if (!condition) throw new Exception(message);
+}
+
+var handler = new FakeHandler((path, attempt) =>
+{
+    var body = path switch
+    {
+        "/v2/en/sets" => "[{\"id\":\"sv01\",\"name\":\"Scarlet & Violet\"}]",
+        "/v2/en/sets/sv01" => setJson,
+        "/v2/en/cards/sv01-001" => cardJson,
+        _ => throw new Exception($"Unexpected route {path}")
+    };
+    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
+});
+var service = new PokemonCardService(new HttpClient(handler));
+var cards = await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => service.GetCardByIdAsync("sv01-001")));
+Check(handler.Count("/v2/en/cards/sv01-001") == 1, "Concurrent card requests were not shared");
+Check(handler.Count("/v2/en/sets/sv01") == 1, "Set requests were not cached");
+Check(cards.All(c => c?.ReleasedAt == "2023-03-31" && c.Power == "60" && c.OracleText!.Contains("10+")), "Card mapping/date enrichment failed");
+Check(cards[0]!.Prices?.Usd == "0.12" && cards[0]!.Prices?.UsdFoil == "0.2", "Normal/reverse-holo numeric pricing mapping failed");
+var sets = await service.GetAllSetsAsync();
+Check(sets.Single().ReleasedAt == "2023-03-31" && sets.Single().CardCount == 258, "List did not hydrate release date/card count");
+var summaries = await service.GetCardsBySetAsync("SV01");
+Check(summaries.Single().ReleasedAt == "2023-03-31", "Set card summary lost its release date");
+Check((await service.GetRandomCardAsync())?.Name == "Pineco", "Random card lookup failed");
+Check(handler.Count("/v2/en/sets/sv01") == 1, "Repeated metadata retrieval was not cached");
+Console.WriteLine("PASS date enrichment, request coalescing, caching, numeric/string fields, reverse-holo prices, random card lookup");
+
+foreach (var status in new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.ServiceUnavailable, HttpStatusCode.RequestTimeout })
+{
+    var retry = new FakeHandler((path, attempt) => new HttpResponseMessage(attempt < 3 ? status : HttpStatusCode.OK)
+    {
+        Content = new StringContent(path.Contains("/cards/") ? cardJson : setJson)
+    });
+    var client = new PokemonCardService(new HttpClient(retry));
+    Check((await client.GetCardByIdAsync("sv01-001"))?.Name == "Pineco", $"Recovery failed for {status}");
+    Check(retry.Count("/v2/en/cards/sv01-001") == 3, $"Wrong retry count for {status}");
+}
+Console.WriteLine("PASS bounded retries for HTTP 429, 503, 408");
+
+var failure = new FakeHandler((path, attempt) => new HttpResponseMessage(path.Contains("/cards/") && attempt <= 3 ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
+{
+    Content = new StringContent(path.Contains("/cards/") ? cardJson : setJson)
+});
+var recover = new PokemonCardService(new HttpClient(failure));
+try { await recover.GetCardByIdAsync("sv01-001"); throw new Exception("Expected HTTP failure"); }
+catch (HttpRequestException ex) { Check(ex.StatusCode == HttpStatusCode.ServiceUnavailable, "HTTP failure hidden"); }
+Check(failure.Count("/v2/en/cards/sv01-001") == 3, "Retry limit exceeded");
+Check((await recover.GetCardByIdAsync("sv01-001"))?.Name == "Pineco", "Failed card request remained cached");
+Console.WriteLine("PASS retry exhaustion surfaces error and subsequent selection retries");
+
+var badJson = new FakeHandler((path, attempt) => new HttpResponseMessage(HttpStatusCode.OK)
+{
+    Content = new StringContent(path.Contains("/cards/") && attempt == 1 ? "{" : path.Contains("/cards/") ? cardJson : setJson)
+});
+var parse = new PokemonCardService(new HttpClient(badJson));
+try { await parse.GetCardByIdAsync("sv01-001"); throw new Exception("Expected JSON failure"); }
+catch (JsonException) { }
+Check(badJson.Count("/v2/en/cards/sv01-001") == 1, "Malformed JSON was retried as transient");
+Check((await parse.GetCardByIdAsync("sv01-001"))?.Name == "Pineco", "JSON failure remained cached");
+Console.WriteLine("PASS invalid JSON surfaces immediately and is not cached");
+
+var missing = new FakeHandler((path, attempt) => new HttpResponseMessage(HttpStatusCode.NotFound));
+var absent = new PokemonCardService(new HttpClient(missing));
+Check(await absent.GetCardByIdAsync("missing") == null, "404 did not return missing");
+Check(await absent.GetCardByIdAsync("missing") == null && missing.Count("/v2/en/cards/missing") == 2, "404 was retried or cached");
+Console.WriteLine("PASS missing cards are neither retried nor cached");
+
+var network = new FakeHandler((path, attempt) =>
+{
+    if (path.Contains("/cards/") && attempt == 1) throw new HttpRequestException("Connection reset");
+    if (path.Contains("/cards/") && attempt == 2) throw new TaskCanceledException("Timed out");
+    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(path.Contains("/cards/") ? cardJson : setJson) };
+});
+Check((await new PokemonCardService(new HttpClient(network)).GetCardByIdAsync("sv01-001"))?.Name == "Pineco", "Network/timeout recovery failed");
+Console.WriteLine("PASS network and timeout recovery");
+
+var limited = new FakeHandler((path, attempt) => new HttpResponseMessage(HttpStatusCode.OK)
+{
+    Content = new StringContent(path == "/v2/en/sets"
+        ? JsonSerializer.Serialize(Enumerable.Range(0, 24).Select(n => new { id = $"set{n}", name = $"Set {n}" }))
+        : setJson)
+});
+Check((await new PokemonCardService(new HttpClient(limited)).GetAllSetsAsync()).Count == 24, "Concurrent set hydration incomplete");
+Check(limited.PeakRequests <= 6 && limited.PeakRequests > 1, "Set downloads did not respect concurrency limit");
+Console.WriteLine($"PASS set retrieval concurrency bounded at {limited.PeakRequests}");
+
+var unauthorized = new FakeHandler((path, attempt) => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+try { await new PokemonCardService(new HttpClient(unauthorized)).GetCardByIdAsync("sv01-001"); throw new Exception("Expected 401"); }
+catch (HttpRequestException ex) { Check(ex.StatusCode == HttpStatusCode.Unauthorized, "401 was hidden"); }
+Check(unauthorized.Count("/v2/en/cards/sv01-001") == 1, "Permanent HTTP failure was retried");
+Console.WriteLine("PASS permanent HTTP errors are surfaced without retries");
+
+if (args.Contains("--live"))
+{
+    var live = new PokemonCardService();
+    var list = await live.GetAllSetsAsync();
+    Check(list.Single(s => s.Code == "sv01").ReleasedAt == "2023-03-31", "Live Scarlet & Violet date wrong");
+    Check(list.Single(s => s.Code == "base1").ReleasedAt == "1999-01-09", "Live Base Set date wrong");
+    var sample = await Task.WhenAll(new[] { "sv01-001", "base1-4", "sv03.5-001", "me01-001", "sv01-258" }.Select(live.GetCardByIdAsync));
+    Check(sample.All(c => c != null && !string.IsNullOrWhiteSpace(c.ReleasedAt)), "Live card details/date lookup failed");
+    Console.WriteLine($"PASS live: {list.Count} sets, {list.Count(s => s.ReleasedAt != null)} dates, {sample.Length} complete cards");
+}
+
+sealed class FakeHandler(Func<string, int, HttpResponseMessage> respond) : HttpMessageHandler
+{
+    private readonly ConcurrentDictionary<string, int> _counts = new();
+    private int _active;
+    public int PeakRequests { get; private set; }
+    public int Count(string path) => _counts.GetValueOrDefault(path);
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var path = request.RequestUri!.AbsolutePath;
+        var count = _counts.AddOrUpdate(path, 1, (_, n) => n + 1);
+        lock (_counts) { _active++; PeakRequests = Math.Max(PeakRequests, _active); }
+        try
+        {
+            await Task.Delay(10, cancellationToken);
+            return respond(path, count);
+        }
+        finally { lock (_counts) { _active--; } }
+    }
+}

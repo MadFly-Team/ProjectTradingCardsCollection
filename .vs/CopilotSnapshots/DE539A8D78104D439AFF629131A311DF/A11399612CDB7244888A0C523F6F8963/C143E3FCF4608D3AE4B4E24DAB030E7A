@@ -1,0 +1,33 @@
+﻿using ProjectMTGCollector.Forms;
+
+Console.WriteLine(
+    "╔════════════════════════════════════════════════════════════════╗");
+Console.WriteLine(
+    "║    Magic: The Gathering Card Database Viewer                   ║");
+Console.WriteLine(
+    "║    Powered by Scryfall API                                     ║");
+Console.WriteLine(
+    "╚════════════════════════════════════════════════════════════════╝");
+
+ApplicationConfiguration.Initialize();
+
+// Show splash screen
+var splashScreen = new SplashScreen();
+splashScreen.Show();
+splashScreen.UpdateStatus("Initializing...");
+Application.DoEvents();
+
+// Simulate loading (you can add actual initialization here)
+await Task.Delay(1500);
+splashScreen.UpdateStatus("Loading services...");
+Application.DoEvents();
+
+await Task.Delay(1000);
+splashScreen.UpdateStatus("Starting application...");
+Application.DoEvents();
+
+await Task.Delay(500);
+
+// Close splash and show main form
+splashScreen.Close();
+Application.Run(new MainForm());

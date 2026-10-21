@@ -1,0 +1,120 @@
+﻿using ProjectMTGCollector.Models;
+
+namespace ProjectMTGCollector.Utils;
+
+public static class CardDisplayHelper
+{
+    public static void DisplayCard(Card card)
+    {
+        Console.WriteLine("\n" + new string('=', 80));
+        Console.WriteLine($"CARD: {card.Name}");
+        Console.WriteLine(new string('=', 80));
+
+        if (!string.IsNullOrEmpty(card.ManaCost))
+            Console.WriteLine($"Mana Cost: {card.ManaCost} (CMC: {card.ConvertedManaCost})");
+
+        Console.WriteLine($"Type: {card.TypeLine}");
+
+        if (!string.IsNullOrEmpty(card.OracleText))
+        {
+            Console.WriteLine($"\nText:");
+            Console.WriteLine($"  {card.OracleText}");
+        }
+
+        if (!string.IsNullOrEmpty(card.Power) && !string.IsNullOrEmpty(card.Toughness))
+            Console.WriteLine($"\nP/T: {card.Power}/{card.Toughness}");
+
+        Console.WriteLine($"\nSet: {card.SetName} ({card.Set.ToUpper()}) #{card.CollectorNumber}");
+        Console.WriteLine($"Rarity: {card.Rarity}");
+
+        if (!string.IsNullOrEmpty(card.Artist))
+            Console.WriteLine($"Artist: {card.Artist}");
+
+        if (card.Colors != null && card.Colors.Any())
+            Console.WriteLine($"Colors: {string.Join(", ", card.Colors)}");
+
+        if (card.Prices != null)
+        {
+            Console.WriteLine($"\nPrices:");
+            if (!string.IsNullOrEmpty(card.Prices.Usd))
+                Console.WriteLine($"  USD: ${card.Prices.Usd}");
+            if (!string.IsNullOrEmpty(card.Prices.UsdFoil))
+                Console.WriteLine($"  USD Foil: ${card.Prices.UsdFoil}");
+            if (!string.IsNullOrEmpty(card.Prices.Eur))
+                Console.WriteLine($"  EUR: €{card.Prices.Eur}");
+        }
+
+        if (card.ImageUris != null)
+        {
+            Console.WriteLine($"\nImage URLs:");
+            if (!string.IsNullOrEmpty(card.ImageUris.Normal))
+                Console.WriteLine($"  Normal: {card.ImageUris.Normal}");
+            if (!string.IsNullOrEmpty(card.ImageUris.Large))
+                Console.WriteLine($"  Large: {card.ImageUris.Large}");
+            if (!string.IsNullOrEmpty(card.ImageUris.Png))
+                Console.WriteLine($"  PNG: {card.ImageUris.Png}");
+        }
+        else if (card.CardFaces != null && card.CardFaces.Any())
+        {
+            Console.WriteLine($"\n--- DOUBLE-FACED CARD ---");
+            foreach (var face in card.CardFaces)
+            {
+                Console.WriteLine($"\n  Face: {face.Name}");
+                if (!string.IsNullOrEmpty(face.ManaCost))
+                    Console.WriteLine($"  Mana Cost: {face.ManaCost}");
+                Console.WriteLine($"  Type: {face.TypeLine}");
+                if (!string.IsNullOrEmpty(face.OracleText))
+                    Console.WriteLine($"  Text: {face.OracleText}");
+                if (face.ImageUris?.Normal != null)
+                    Console.WriteLine($"  Image: {face.ImageUris.Normal}");
+            }
+        }
+
+        if (card.Legalities != null && card.Legalities.Any())
+        {
+            Console.WriteLine($"\nLegalities:");
+            foreach (var legality in card.Legalities.Where(l => l.Value == "legal"))
+            {
+                Console.WriteLine($"  {legality.Key}: {legality.Value}");
+            }
+        }
+
+        Console.WriteLine(new string('=', 80));
+    }
+
+    public static void DisplayCardList(List<Card> cards)
+    {
+        Console.WriteLine($"\nFound {cards.Count} card(s):\n");
+        for (int i = 0; i < cards.Count; i++)
+        {
+            var card = cards[i];
+            Console.WriteLine($"{i + 1}. {card.Name} ({card.Set.ToUpper()}) - {card.Rarity}");
+        }
+    }
+
+    public static void DisplaySet(Set set)
+    {
+        Console.WriteLine("\n" + new string('=', 80));
+        Console.WriteLine($"SET: {set.Name}");
+        Console.WriteLine(new string('=', 80));
+        Console.WriteLine($"Code: {set.Code.ToUpper()}");
+        Console.WriteLine($"Type: {set.SetType}");
+        Console.WriteLine($"Card Count: {set.CardCount}");
+        if (!string.IsNullOrEmpty(set.ReleasedAt))
+            Console.WriteLine($"Released: {set.ReleasedAt}");
+        Console.WriteLine($"Digital: {(set.Digital ? "Yes" : "No")}");
+        Console.WriteLine(new string('=', 80));
+    }
+
+    public static void DisplaySetList(List<Set> sets)
+    {
+        Console.WriteLine($"\nFound {sets.Count} set(s):\n");
+        for (int i = 0; i < sets.Count && i < 20; i++)
+        {
+            var set = sets[i];
+            Console.WriteLine($"{i + 1}. {set.Name} ({set.Code.ToUpper()}) - {set.CardCount} cards - {set.ReleasedAt}");
+        }
+        if (sets.Count > 20)
+            Console.WriteLine($"\n... and {sets.Count - 20} more sets.");
+    }
+}

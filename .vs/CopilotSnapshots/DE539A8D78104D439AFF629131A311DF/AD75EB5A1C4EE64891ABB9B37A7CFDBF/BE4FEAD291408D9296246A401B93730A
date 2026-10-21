@@ -1,0 +1,179 @@
+﻿using System.Text.Json;
+using ProjectMTGCollector.Models;
+
+namespace ProjectMTGCollector.Services;
+
+public class ScryfallService
+{
+    private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _jsonOptions;
+    private const string BaseUrl = "https://api.scryfall.com";
+
+    public ScryfallService()
+    {
+        _httpClient = new HttpClient();
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "ProjectMTGCollector/1.0");
+        
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+    }
+
+    public async Task<Card?> GetCardByNameAsync(string cardName)
+    {
+        try
+        {
+            var encodedName = Uri.EscapeDataString(cardName);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/cards/named?fuzzy={encodedName}");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return null;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Card>(json, _jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching card: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<List<Card>> GetAllPrintingsAsync(string cardName)
+    {
+        try
+        {
+            var encodedName = Uri.EscapeDataString($"!\"{cardName}\"");
+            var response = await _httpClient.GetAsync($"{BaseUrl}/cards/search?q={encodedName}&unique=prints&order=released");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return new List<Card>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ScryfallResponse<Card>>(json, _jsonOptions);
+            
+            return result?.Data ?? new List<Card>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching card printings: {ex.Message}");
+            return new List<Card>();
+        }
+    }
+
+    public async Task<List<Card>> SearchCardsAsync(string query, int maxResults = 50)
+    {
+        try
+        {
+            var encodedQuery = Uri.EscapeDataString(query);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/cards/search?q={encodedQuery}&unique=cards");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return new List<Card>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ScryfallResponse<Card>>(json, _jsonOptions);
+            
+            return result?.Data.Take(maxResults).ToList() ?? new List<Card>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching cards: {ex.Message}");
+            return new List<Card>();
+        }
+    }
+
+    public async Task<List<Card>> GetCardsBySetAsync(string setCode)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{BaseUrl}/cards/search?q=set:{setCode}&unique=prints");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return new List<Card>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ScryfallResponse<Card>>(json, _jsonOptions);
+            
+            return result?.Data ?? new List<Card>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching cards from set: {ex.Message}");
+            return new List<Card>();
+        }
+    }
+
+    public async Task<List<Set>> GetAllSetsAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{BaseUrl}/sets");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return new List<Set>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ScryfallResponse<Set>>(json, _jsonOptions);
+            
+            return result?.Data ?? new List<Set>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching sets: {ex.Message}");
+            return new List<Set>();
+        }
+    }
+
+    public async Task<Set?> GetSetAsync(string setCode)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{BaseUrl}/sets/{setCode}");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return null;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Set>(json, _jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching set: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task DownloadCardImageAsync(string imageUrl, string filePath)
+    {
+        try
+        {
+            var imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
+            await File.WriteAllBytesAsync(filePath, imageBytes);
+            Console.WriteLine($"Image saved to: {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading image: {ex.Message}");
+        }
+    }
+}

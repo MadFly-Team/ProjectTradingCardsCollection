@@ -1,0 +1,242 @@
+using AForge.Video;
+using AForge.Video.DirectShow;
+using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+using Tesseract;
+
+namespace ProjectMTGCollector.Forms;
+
+public partial class WebcamScannerForm : Form
+{
+    private readonly PokemonCardService _pokemonCardService;
+    private readonly CollectionService _collectionService;
+    private VideoCaptureDevice? _videoSource;
+    private FilterInfoCollection? _videoDevices;
+    private Bitmap? _currentFrame;
+
+    public WebcamScannerForm(PokemonCardService pokemonCardService, CollectionService collectionService)
+    {
+        _pokemonCardService = pokemonCardService;
+        _collectionService = collectionService;
+        InitializeComponent();
+        LoadCameras();
+    }
+
+    private void LoadCameras()
+    {
+        try
+        {
+            _videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            cmbCameras.Items.Clear();
+            if (_videoDevices.Count == 0)
+            {
+                cmbCameras.Items.Add("No cameras found");
+                cmbCameras.Enabled = false;
+                btnStart.Enabled = false;
+                btnCapture.Enabled = false;
+                btnAdd.Enabled = false;
+            }
+            else
+            {
+                foreach (FilterInfo device in _videoDevices)
+                {
+                    cmbCameras.Items.Add(device.Name);
+                }
+                cmbCameras.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading cameras: {ex.Message}", "Camera Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BtnStart_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_videoDevices == null || _videoDevices.Count == 0)
+                return;
+
+            if (cmbCameras.SelectedIndex < 0)
+                cmbCameras.SelectedIndex = 0;
+
+            _videoSource = new VideoCaptureDevice(_videoDevices[cmbCameras.SelectedIndex].MonikerString);
+            _videoSource.NewFrame += VideoSource_NewFrame;
+            _videoSource.Start();
+            btnStart.Enabled = false;
+            btnStop.Enabled = true;
+            btnCapture.Enabled = true;
+            lblStatus.Text = "Live preview";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error starting camera: {ex.Message}", "Camera Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BtnStop_Click(object? sender, EventArgs e)
+    {
+        StopCamera();
+    }
+
+    private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
+    {
+        try
+        {
+            var frame = (Bitmap)eventArgs.Frame.Clone();
+            _currentFrame?.Dispose();
+            _currentFrame = frame;
+            picPreview.Image?.Dispose();
+            picPreview.Image = (Bitmap)frame.Clone();
+        }
+        catch
+        {
+            // ignore frame errors
+        }
+    }
+
+    private void BtnCapture_Click(object? sender, EventArgs e)
+    {
+        if (_currentFrame == null)
+        {
+            MessageBox.Show("No frame available. Start the camera first.", "Capture", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // Freeze current image for review
+        picCaptured.Image?.Dispose();
+        picCaptured.Image = (Bitmap)_currentFrame.Clone();
+        lblStatus.Text = "Captured frame. Enter card name and Add.";
+    }
+
+    private async void BtnAdd_Click(object? sender, EventArgs e)
+    {
+        var name = txtCardName.Text.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            MessageBox.Show("Enter the card name to search.", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnAdd.Enabled = false;
+        lblStatus.Text = "Searching card...";
+
+        try
+        {
+            var card = await _pokemonCardService.GetCardByNameAsync(name);
+            if (card == null)
+            {
+                MessageBox.Show("Pokémon card not found on TCGdex.", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var addDialog = new AddToCollectionDialog(_collectionService, card);
+            if (addDialog.ShowDialog(this) == DialogResult.OK)
+            {
+                lblStatus.Text = "Added to collection.";
+                this.DialogResult = DialogResult.OK;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error adding card: {ex.Message}", "Add to Collection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnAdd.Enabled = true;
+        }
+    }
+
+    private async void BtnOcrSearch_Click(object? sender, EventArgs e)
+    {
+        if (picCaptured.Image == null)
+        {
+            MessageBox.Show("Capture an image first.", "OCR", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnOcrSearch.Enabled = false;
+        lblStatus.Text = "Running OCR...";
+
+        try
+        {
+            // Save bitmap to memory stream for Tesseract
+            using var ms = new MemoryStream();
+            picCaptured.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+            ms.Position = 0;
+
+            var tessDataPath = AppContext.BaseDirectory;
+            if (!File.Exists(Path.Combine(tessDataPath, "eng.traineddata")))
+            {
+                MessageBox.Show($"OCR language data was not found in {tessDataPath}.", "OCR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
+            using var pix = Pix.LoadFromMemory(ms.ToArray());
+            using var page = engine.Process(pix);
+            var text = page.GetText();
+            var firstLine = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(firstLine))
+            {
+                MessageBox.Show("OCR did not find text. Try a clearer capture.", "OCR", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            txtCardName.Text = firstLine.Trim();
+            lblStatus.Text = $"OCR detected: {firstLine.Trim()}. Searching...";
+
+            // auto-search and open add dialog
+            var card = await _pokemonCardService.GetCardByNameAsync(firstLine.Trim());
+            if (card == null)
+            {
+                MessageBox.Show("Pokémon card not found on TCGdex.", "OCR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                lblStatus.Text = "Card not found.";
+                return;
+            }
+
+            using var addDialog = new AddToCollectionDialog(_collectionService, card);
+            if (addDialog.ShowDialog(this) == DialogResult.OK)
+            {
+                lblStatus.Text = "Added to collection via OCR.";
+                this.DialogResult = DialogResult.OK;
+            }
+            else
+            {
+                lblStatus.Text = "OCR search completed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"OCR error: {ex.Message}", "OCR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            lblStatus.Text = "OCR failed.";
+        }
+        finally
+        {
+            btnOcrSearch.Enabled = true;
+        }
+    }
+
+    private void StopCamera()
+    {
+        try
+        {
+            if (_videoSource != null && _videoSource.IsRunning)
+            {
+                _videoSource.SignalToStop();
+                _videoSource.NewFrame -= VideoSource_NewFrame;
+                _videoSource = null;
+            }
+        }
+        catch { }
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        StopCamera();
+        _currentFrame?.Dispose();
+        base.OnFormClosing(e);
+    }
+}

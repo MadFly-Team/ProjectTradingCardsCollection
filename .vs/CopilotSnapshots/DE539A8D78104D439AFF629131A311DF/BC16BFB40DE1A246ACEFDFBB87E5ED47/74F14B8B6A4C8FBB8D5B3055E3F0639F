@@ -1,0 +1,64 @@
+﻿using System.Collections.Concurrent;
+
+namespace ProjectMTGCollector.Services;
+
+public class ImageCacheService
+{
+    private readonly HttpClient _httpClient;
+    private readonly ConcurrentDictionary<string, Image?> _cache;
+    private readonly SemaphoreSlim _downloadSemaphore;
+
+    public ImageCacheService()
+    {
+        _httpClient = new HttpClient();
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "ProjectMTGCollector/1.0");
+        _cache = new ConcurrentDictionary<string, Image?>();
+        _downloadSemaphore = new SemaphoreSlim(5, 5);
+    }
+
+    public async Task<Image?> GetImageAsync(string imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl))
+            return null;
+
+        if (_cache.TryGetValue(imageUrl, out var cachedImage))
+            return cachedImage;
+
+        await _downloadSemaphore.WaitAsync();
+        try
+        {
+            if (_cache.TryGetValue(imageUrl, out cachedImage))
+                return cachedImage;
+
+            var imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
+            using var ms = new MemoryStream(imageBytes);
+            var image = Image.FromStream(ms);
+            _cache[imageUrl] = image;
+            return image;
+        }
+        catch
+        {
+            _cache[imageUrl] = null;
+            return null;
+        }
+        finally
+        {
+            _downloadSemaphore.Release();
+        }
+    }
+
+    public Image? GetCachedImage(string imageUrl)
+    {
+        _cache.TryGetValue(imageUrl, out var image);
+        return image;
+    }
+
+    public void ClearCache()
+    {
+        foreach (var image in _cache.Values)
+        {
+            image?.Dispose();
+        }
+        _cache.Clear();
+    }
+}

@@ -1,0 +1,538 @@
+namespace ProjectMTGCollector.Models;
+
+public class ColorTheme
+{
+    public string Name { get; set; } = string.Empty;
+    public Color BackColor { get; set; }
+    public Color ForeColor { get; set; }
+    public Color PanelBackColor { get; set; }
+    public Color ControlBackColor { get; set; }
+    public Color AccentColor { get; set; }
+    public Color ButtonBackColor { get; set; }
+    public Color ButtonForeColor { get; set; }
+
+    public static List<ColorTheme> GetAllThemes()
+    {
+        return new List<ColorTheme>
+        {
+            // Light Themes
+            new ColorTheme
+            {
+                Name = "Default Light",
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                PanelBackColor = Color.FromArgb(240, 240, 240),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(0, 120, 215),
+                ButtonBackColor = Color.FromArgb(225, 225, 225),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Arctic Blue",
+                BackColor = Color.FromArgb(240, 248, 255),
+                ForeColor = Color.FromArgb(25, 25, 112),
+                PanelBackColor = Color.FromArgb(220, 235, 250),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(70, 130, 180),
+                ButtonBackColor = Color.FromArgb(176, 196, 222),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Mint Fresh",
+                BackColor = Color.FromArgb(245, 255, 250),
+                ForeColor = Color.FromArgb(0, 100, 0),
+                PanelBackColor = Color.FromArgb(224, 255, 240),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(60, 179, 113),
+                ButtonBackColor = Color.FromArgb(144, 238, 144),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Lavender Dream",
+                BackColor = Color.FromArgb(250, 245, 255),
+                ForeColor = Color.FromArgb(75, 0, 130),
+                PanelBackColor = Color.FromArgb(230, 220, 250),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(147, 112, 219),
+                ButtonBackColor = Color.FromArgb(216, 191, 216),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Warm Beige",
+                BackColor = Color.FromArgb(255, 250, 240),
+                ForeColor = Color.FromArgb(101, 67, 33),
+                PanelBackColor = Color.FromArgb(245, 235, 220),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(210, 105, 30),
+                ButtonBackColor = Color.FromArgb(222, 184, 135),
+                ButtonForeColor = Color.Black
+            },
+
+            // Dark Themes
+            new ColorTheme
+            {
+                Name = "Dark Mode",
+                BackColor = Color.FromArgb(32, 32, 32),
+                ForeColor = Color.FromArgb(220, 220, 220),
+                PanelBackColor = Color.FromArgb(45, 45, 48),
+                ControlBackColor = Color.FromArgb(60, 60, 60),
+                AccentColor = Color.FromArgb(0, 122, 204),
+                ButtonBackColor = Color.FromArgb(80, 80, 80),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Midnight Blue",
+                BackColor = Color.FromArgb(15, 15, 35),
+                ForeColor = Color.FromArgb(200, 200, 255),
+                PanelBackColor = Color.FromArgb(25, 25, 50),
+                ControlBackColor = Color.FromArgb(40, 40, 70),
+                AccentColor = Color.FromArgb(65, 105, 225),
+                ButtonBackColor = Color.FromArgb(60, 60, 100),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Forest Night",
+                BackColor = Color.FromArgb(20, 30, 20),
+                ForeColor = Color.FromArgb(200, 255, 200),
+                PanelBackColor = Color.FromArgb(30, 45, 30),
+                ControlBackColor = Color.FromArgb(45, 60, 45),
+                AccentColor = Color.FromArgb(34, 139, 34),
+                ButtonBackColor = Color.FromArgb(60, 80, 60),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Purple Haze",
+                BackColor = Color.FromArgb(30, 20, 40),
+                ForeColor = Color.FromArgb(230, 200, 255),
+                PanelBackColor = Color.FromArgb(45, 30, 60),
+                ControlBackColor = Color.FromArgb(60, 45, 80),
+                AccentColor = Color.FromArgb(138, 43, 226),
+                ButtonBackColor = Color.FromArgb(80, 60, 100),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Charcoal",
+                BackColor = Color.FromArgb(40, 40, 40),
+                ForeColor = Color.FromArgb(230, 230, 230),
+                PanelBackColor = Color.FromArgb(55, 55, 55),
+                ControlBackColor = Color.FromArgb(70, 70, 70),
+                AccentColor = Color.FromArgb(255, 140, 0),
+                ButtonBackColor = Color.FromArgb(90, 90, 90),
+                ButtonForeColor = Color.White
+            },
+
+            // MTG Styled Themes (at least 20)
+            new ColorTheme { // White mana (Plains)
+                Name = "Plains (White)",
+                BackColor = Color.FromArgb(250, 250, 240),
+                ForeColor = Color.FromArgb(80, 80, 60),
+                PanelBackColor = Color.FromArgb(240, 240, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(212, 175, 55),
+                ButtonBackColor = Color.FromArgb(230, 230, 210),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme { // Blue mana (Island)
+                Name = "Island (Blue)",
+                BackColor = Color.FromArgb(235, 245, 255),
+                ForeColor = Color.FromArgb(20, 40, 90),
+                PanelBackColor = Color.FromArgb(215, 230, 245),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(30, 144, 255),
+                ButtonBackColor = Color.FromArgb(180, 210, 245),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme { // Black mana (Swamp)
+                Name = "Swamp (Black)",
+                BackColor = Color.FromArgb(25, 25, 30),
+                ForeColor = Color.FromArgb(220, 220, 220),
+                PanelBackColor = Color.FromArgb(35, 35, 40),
+                ControlBackColor = Color.FromArgb(45, 45, 50),
+                AccentColor = Color.FromArgb(128, 0, 128),
+                ButtonBackColor = Color.FromArgb(60, 60, 70),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme { // Red mana (Mountain)
+                Name = "Mountain (Red)",
+                BackColor = Color.FromArgb(255, 240, 240),
+                ForeColor = Color.FromArgb(120, 30, 30),
+                PanelBackColor = Color.FromArgb(250, 225, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(200, 50, 50),
+                ButtonBackColor = Color.FromArgb(255, 200, 200),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme { // Green mana (Forest)
+                Name = "Forest (Green)",
+                BackColor = Color.FromArgb(240, 250, 240),
+                ForeColor = Color.FromArgb(20, 80, 40),
+                PanelBackColor = Color.FromArgb(225, 240, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(46, 139, 87),
+                ButtonBackColor = Color.FromArgb(200, 230, 200),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme { // Colorless (Wastes)
+                Name = "Wastes (Colorless)",
+                BackColor = Color.FromArgb(245, 245, 245),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                PanelBackColor = Color.FromArgb(230, 230, 230),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(120, 120, 120),
+                ButtonBackColor = Color.FromArgb(220, 220, 220),
+                ButtonForeColor = Color.Black
+            },
+            // Guilds (Ravnica)
+            new ColorTheme {
+                Name = "Azorius (WU)",
+                BackColor = Color.FromArgb(240, 245, 255),
+                ForeColor = Color.FromArgb(30, 50, 110),
+                PanelBackColor = Color.FromArgb(225, 235, 250),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(180, 200, 255),
+                ButtonBackColor = Color.FromArgb(210, 220, 245),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Dimir (UB)",
+                BackColor = Color.FromArgb(20, 25, 40),
+                ForeColor = Color.FromArgb(180, 200, 255),
+                PanelBackColor = Color.FromArgb(30, 35, 60),
+                ControlBackColor = Color.FromArgb(40, 45, 70),
+                AccentColor = Color.FromArgb(70, 130, 180),
+                ButtonBackColor = Color.FromArgb(60, 70, 90),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Rakdos (BR)",
+                BackColor = Color.FromArgb(40, 20, 20),
+                ForeColor = Color.FromArgb(240, 200, 200),
+                PanelBackColor = Color.FromArgb(60, 30, 30),
+                ControlBackColor = Color.FromArgb(80, 40, 40),
+                AccentColor = Color.FromArgb(200, 0, 0),
+                ButtonBackColor = Color.FromArgb(120, 40, 40),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Gruul (RG)",
+                BackColor = Color.FromArgb(245, 245, 235),
+                ForeColor = Color.FromArgb(60, 40, 20),
+                PanelBackColor = Color.FromArgb(230, 230, 215),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(34, 139, 34),
+                ButtonBackColor = Color.FromArgb(205, 92, 92),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Selesnya (GW)",
+                BackColor = Color.FromArgb(245, 250, 240),
+                ForeColor = Color.FromArgb(40, 70, 40),
+                PanelBackColor = Color.FromArgb(230, 240, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(218, 165, 32),
+                ButtonBackColor = Color.FromArgb(193, 225, 193),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Orzhov (WB)",
+                BackColor = Color.FromArgb(245, 240, 235),
+                ForeColor = Color.FromArgb(50, 50, 50),
+                PanelBackColor = Color.FromArgb(230, 225, 220),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(212, 175, 55),
+                ButtonBackColor = Color.FromArgb(220, 215, 210),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Izzet (UR)",
+                BackColor = Color.FromArgb(235, 245, 255),
+                ForeColor = Color.FromArgb(25, 25, 100),
+                PanelBackColor = Color.FromArgb(220, 235, 250),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(255, 69, 0),
+                ButtonBackColor = Color.FromArgb(200, 220, 250),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Golgari (BG)",
+                BackColor = Color.FromArgb(30, 35, 25),
+                ForeColor = Color.FromArgb(190, 220, 190),
+                PanelBackColor = Color.FromArgb(40, 45, 35),
+                ControlBackColor = Color.FromArgb(55, 60, 45),
+                AccentColor = Color.FromArgb(85, 107, 47),
+                ButtonBackColor = Color.FromArgb(70, 80, 60),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Boros (RW)",
+                BackColor = Color.FromArgb(255, 245, 240),
+                ForeColor = Color.FromArgb(120, 40, 30),
+                PanelBackColor = Color.FromArgb(240, 230, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(220, 20, 60),
+                ButtonBackColor = Color.FromArgb(255, 220, 200),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Simic (UG)",
+                BackColor = Color.FromArgb(235, 250, 245),
+                ForeColor = Color.FromArgb(20, 60, 80),
+                PanelBackColor = Color.FromArgb(220, 240, 235),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(0, 128, 128),
+                ButtonBackColor = Color.FromArgb(180, 230, 220),
+                ButtonForeColor = Color.Black
+            },
+            // Factions and styles
+            new ColorTheme {
+                Name = "Eldrazi (Void)",
+                BackColor = Color.FromArgb(20, 20, 30),
+                ForeColor = Color.FromArgb(200, 200, 230),
+                PanelBackColor = Color.FromArgb(30, 30, 45),
+                ControlBackColor = Color.FromArgb(45, 45, 60),
+                AccentColor = Color.FromArgb(186, 85, 211),
+                ButtonBackColor = Color.FromArgb(70, 70, 100),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Phyrexian (Oil)",
+                BackColor = Color.FromArgb(25, 15, 20),
+                ForeColor = Color.FromArgb(220, 210, 220),
+                PanelBackColor = Color.FromArgb(35, 25, 30),
+                ControlBackColor = Color.FromArgb(55, 45, 55),
+                AccentColor = Color.FromArgb(139, 0, 0),
+                ButtonBackColor = Color.FromArgb(90, 60, 70),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Artifact (Steel)",
+                BackColor = Color.FromArgb(235, 238, 240),
+                ForeColor = Color.FromArgb(50, 60, 70),
+                PanelBackColor = Color.FromArgb(220, 225, 230),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(176, 196, 222),
+                ButtonBackColor = Color.FromArgb(200, 210, 220),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Zendikar (Adventure)",
+                BackColor = Color.FromArgb(240, 250, 240),
+                ForeColor = Color.FromArgb(45, 75, 55),
+                PanelBackColor = Color.FromArgb(225, 240, 225),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(154, 205, 50),
+                ButtonBackColor = Color.FromArgb(193, 225, 193),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Innistrad (Gothic)",
+                BackColor = Color.FromArgb(30, 30, 40),
+                ForeColor = Color.FromArgb(200, 200, 220),
+                PanelBackColor = Color.FromArgb(45, 45, 60),
+                ControlBackColor = Color.FromArgb(60, 60, 80),
+                AccentColor = Color.FromArgb(123, 104, 238),
+                ButtonBackColor = Color.FromArgb(80, 80, 100),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme {
+                Name = "Theros (Mythic)",
+                BackColor = Color.FromArgb(250, 248, 235),
+                ForeColor = Color.FromArgb(80, 70, 40),
+                PanelBackColor = Color.FromArgb(235, 230, 210),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(218, 165, 32),
+                ButtonBackColor = Color.FromArgb(230, 215, 180),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme {
+                Name = "Kaladesh (Inventor)",
+                BackColor = Color.FromArgb(245, 250, 255),
+                ForeColor = Color.FromArgb(40, 60, 80),
+                PanelBackColor = Color.FromArgb(230, 240, 250),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(0, 191, 255),
+                ButtonBackColor = Color.FromArgb(176, 224, 230),
+                ButtonForeColor = Color.Black
+            },
+
+            // Vibrant Themes
+            new ColorTheme
+            {
+                Name = "Ocean Breeze",
+                BackColor = Color.FromArgb(230, 245, 255),
+                ForeColor = Color.FromArgb(0, 50, 100),
+                PanelBackColor = Color.FromArgb(200, 230, 250),
+                ControlBackColor = Color.FromArgb(240, 250, 255),
+                AccentColor = Color.FromArgb(0, 150, 255),
+                ButtonBackColor = Color.FromArgb(135, 206, 250),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Sunset Orange",
+                BackColor = Color.FromArgb(255, 245, 230),
+                ForeColor = Color.FromArgb(139, 69, 19),
+                PanelBackColor = Color.FromArgb(255, 228, 196),
+                ControlBackColor = Color.FromArgb(255, 250, 240),
+                AccentColor = Color.FromArgb(255, 140, 0),
+                ButtonBackColor = Color.FromArgb(255, 165, 0),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Cherry Blossom",
+                BackColor = Color.FromArgb(255, 240, 245),
+                ForeColor = Color.FromArgb(139, 0, 69),
+                PanelBackColor = Color.FromArgb(255, 220, 235),
+                ControlBackColor = Color.FromArgb(255, 250, 252),
+                AccentColor = Color.FromArgb(255, 105, 180),
+                ButtonBackColor = Color.FromArgb(255, 182, 193),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Lime Zest",
+                BackColor = Color.FromArgb(250, 255, 230),
+                ForeColor = Color.FromArgb(50, 100, 0),
+                PanelBackColor = Color.FromArgb(240, 255, 200),
+                ControlBackColor = Color.FromArgb(252, 255, 245),
+                AccentColor = Color.FromArgb(154, 205, 50),
+                ButtonBackColor = Color.FromArgb(173, 255, 47),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Turquoise Sea",
+                BackColor = Color.FromArgb(224, 255, 255),
+                ForeColor = Color.FromArgb(0, 100, 100),
+                PanelBackColor = Color.FromArgb(175, 238, 238),
+                ControlBackColor = Color.FromArgb(240, 255, 255),
+                AccentColor = Color.FromArgb(64, 224, 208),
+                ButtonBackColor = Color.FromArgb(72, 209, 204),
+                ButtonForeColor = Color.Black
+            },
+
+            // Professional Themes
+            new ColorTheme
+            {
+                Name = "Corporate Blue",
+                BackColor = Color.FromArgb(245, 248, 252),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                PanelBackColor = Color.FromArgb(233, 236, 239),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(13, 110, 253),
+                ButtonBackColor = Color.FromArgb(13, 110, 253),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Slate Gray",
+                BackColor = Color.FromArgb(248, 249, 250),
+                ForeColor = Color.FromArgb(52, 58, 64),
+                PanelBackColor = Color.FromArgb(233, 236, 239),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(108, 117, 125),
+                ButtonBackColor = Color.FromArgb(108, 117, 125),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Navy Professional",
+                BackColor = Color.FromArgb(240, 242, 245),
+                ForeColor = Color.FromArgb(28, 42, 58),
+                PanelBackColor = Color.FromArgb(225, 230, 235),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(0, 51, 102),
+                ButtonBackColor = Color.FromArgb(0, 51, 102),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Emerald Business",
+                BackColor = Color.FromArgb(242, 248, 245),
+                ForeColor = Color.FromArgb(30, 60, 45),
+                PanelBackColor = Color.FromArgb(220, 237, 228),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(16, 124, 75),
+                ButtonBackColor = Color.FromArgb(16, 124, 75),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Burgundy Elegance",
+                BackColor = Color.FromArgb(250, 242, 245),
+                ForeColor = Color.FromArgb(60, 20, 30),
+                PanelBackColor = Color.FromArgb(235, 220, 228),
+                ControlBackColor = Color.White,
+                AccentColor = Color.FromArgb(128, 0, 32),
+                ButtonBackColor = Color.FromArgb(128, 0, 32),
+                ButtonForeColor = Color.White
+            },
+
+            // Special Themes
+            new ColorTheme
+            {
+                Name = "High Contrast",
+                BackColor = Color.Black,
+                ForeColor = Color.White,
+                PanelBackColor = Color.FromArgb(20, 20, 20),
+                ControlBackColor = Color.FromArgb(40, 40, 40),
+                AccentColor = Color.Yellow,
+                ButtonBackColor = Color.FromArgb(60, 60, 60),
+                ButtonForeColor = Color.White
+            },
+            new ColorTheme
+            {
+                Name = "Sepia Vintage",
+                BackColor = Color.FromArgb(255, 248, 220),
+                ForeColor = Color.FromArgb(94, 71, 47),
+                PanelBackColor = Color.FromArgb(245, 235, 200),
+                ControlBackColor = Color.FromArgb(255, 253, 230),
+                AccentColor = Color.FromArgb(160, 82, 45),
+                ButtonBackColor = Color.FromArgb(210, 180, 140),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Matrix Green",
+                BackColor = Color.Black,
+                ForeColor = Color.FromArgb(0, 255, 0),
+                PanelBackColor = Color.FromArgb(10, 20, 10),
+                ControlBackColor = Color.FromArgb(20, 30, 20),
+                AccentColor = Color.FromArgb(0, 200, 0),
+                ButtonBackColor = Color.FromArgb(0, 100, 0),
+                ButtonForeColor = Color.FromArgb(0, 255, 0)
+            },
+            new ColorTheme
+            {
+                Name = "Cotton Candy",
+                BackColor = Color.FromArgb(255, 245, 255),
+                ForeColor = Color.FromArgb(139, 0, 139),
+                PanelBackColor = Color.FromArgb(255, 228, 255),
+                ControlBackColor = Color.FromArgb(255, 250, 255),
+                AccentColor = Color.FromArgb(255, 105, 180),
+                ButtonBackColor = Color.FromArgb(255, 182, 255),
+                ButtonForeColor = Color.Black
+            },
+            new ColorTheme
+            {
+                Name = "Cyberpunk",
+                BackColor = Color.FromArgb(18, 18, 28),
+                ForeColor = Color.FromArgb(255, 0, 255),
+                PanelBackColor = Color.FromArgb(28, 28, 40),
+                ControlBackColor = Color.FromArgb(40, 40, 55),
+                AccentColor = Color.FromArgb(0, 255, 255),
+                ButtonBackColor = Color.FromArgb(138, 43, 226),
+                ButtonForeColor = Color.White
+            }
+        };
+    }
+}

@@ -1,0 +1,109 @@
+﻿using System.Text.Json.Serialization;
+
+namespace ProjectMTGCollector.Models;
+
+public class Collection
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    [JsonPropertyName("folders")]
+    public List<CollectionFolder> Folders { get; set; } = new();
+
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    [JsonPropertyName("updatedAt")]
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public int GetTotalCardCount()
+    {
+        return Folders.Sum(f => f.GetTotalCardCount());
+    }
+
+    public decimal GetTotalValue()
+    {
+        return Folders.Sum(f => f.GetTotalValue());
+    }
+}
+
+public class CollectionFolder
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("cards")]
+    public List<CollectionCard> Cards { get; set; } = new();
+
+    public int GetTotalCardCount()
+    {
+        return Cards.Sum(c => c.Quantity);
+    }
+
+    public decimal GetTotalValue()
+    {
+        return Cards.Sum(c => c.GetTotalValue());
+    }
+}
+
+public class CollectionCard
+{
+    [JsonPropertyName("cardId")]
+    public string CardId { get; set; } = string.Empty;
+
+    [JsonPropertyName("cardName")]
+    public string CardName { get; set; } = string.Empty;
+
+    [JsonPropertyName("setCode")]
+    public string SetCode { get; set; } = string.Empty;
+
+    [JsonPropertyName("setName")]
+    public string SetName { get; set; } = string.Empty;
+
+    [JsonPropertyName("collectorNumber")]
+    public string CollectorNumber { get; set; } = string.Empty;
+
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public int Quantity { get; set; } = 1;
+
+    [JsonPropertyName("isFoil")]
+    public bool IsFoil { get; set; }
+
+    [JsonPropertyName("condition")]
+    public string Condition { get; set; } = "Near Mint";
+
+    [JsonPropertyName("purchasePrice")]
+    public decimal? PurchasePrice { get; set; }
+
+    [JsonPropertyName("currentPrice")]
+    public decimal? CurrentPrice { get; set; }
+
+    [JsonPropertyName("addedAt")]
+    public DateTime AddedAt { get; set; } = DateTime.Now;
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; set; }
+
+    public decimal GetTotalValue()
+    {
+        return (CurrentPrice ?? 0) * Quantity;
+    }
+}

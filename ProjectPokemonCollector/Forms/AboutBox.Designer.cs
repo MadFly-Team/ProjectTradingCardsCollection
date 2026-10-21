@@ -1,0 +1,172 @@
+using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms
+{
+    partial class AboutBox
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            lblTitle = new Label();
+            lblVersion = new Label();
+            lblCompany = new Label();
+            lblDeveloper = new Label();
+            lblDescription = new Label();
+            picRandomCard = new PictureBox();
+            lblRandomCard = new Label();
+            btnClose = new Button();
+            btnNewCard = new Button();
+            ( (System.ComponentModel.ISupportInitialize)picRandomCard ).BeginInit();
+            SuspendLayout();
+            // 
+            // lblTitle
+            // 
+            lblTitle.Font = new Font( "Segoe UI", 18F, FontStyle.Bold );
+            lblTitle.ForeColor = Color.FromArgb( 20, 20, 30 );
+            lblTitle.Location = new Point( 38, 38 );
+            lblTitle.Margin = new Padding( 4, 0, 4, 0 );
+            lblTitle.Name = "lblTitle";
+            lblTitle.Size = new Size( 500, 50 );
+            lblTitle.TabIndex = 0;
+            lblTitle.Text = "Pokémon Card Collector";
+            // 
+            // lblVersion
+            // 
+            lblVersion.Font = new Font( "Segoe UI", 11F );
+            lblVersion.ForeColor = Color.Gray;
+            lblVersion.Location = new Point( 38, 94 );
+            lblVersion.Margin = new Padding( 4, 0, 4, 0 );
+            lblVersion.Name = "lblVersion";
+            lblVersion.Size = new Size( 500, 31 );
+            lblVersion.TabIndex = 1;
+            lblVersion.Text = "Version 1.0.0";
+            // 
+            // lblCompany
+            // 
+            lblCompany.Font = new Font( "Segoe UI", 10F );
+            lblCompany.ForeColor = Color.FromArgb( 40, 40, 50 );
+            lblCompany.Location = new Point( 38, 138 );
+            lblCompany.Margin = new Padding( 4, 0, 4, 0 );
+            lblCompany.Name = "lblCompany";
+            lblCompany.Size = new Size( 500, 31 );
+            lblCompany.TabIndex = 2;
+            lblCompany.Text = "Beresford Embedded Software Limited";
+            // 
+            // lblDeveloper
+            // 
+            lblDeveloper.Font = new Font( "Segoe UI", 10F );
+            lblDeveloper.ForeColor = Color.FromArgb( 40, 40, 50 );
+            lblDeveloper.Location = new Point( 55, 169 );
+            lblDeveloper.Margin = new Padding( 4, 0, 4, 0 );
+            lblDeveloper.Name = "lblDeveloper";
+            lblDeveloper.Size = new Size( 500, 31 );
+            lblDeveloper.TabIndex = 3;
+            lblDeveloper.Text = "Developer: Neil Beresford";
+            // 
+            // lblDescription
+            // 
+            lblDescription.Font = new Font( "Segoe UI", 9F );
+            lblDescription.ForeColor = Color.FromArgb( 60, 60, 70 );
+            lblDescription.Location = new Point( 38, 225 );
+            lblDescription.Margin = new Padding( 4, 0, 4, 0 );
+            lblDescription.Name = "lblDescription";
+            lblDescription.Size = new Size( 500, 167 );
+            lblDescription.TabIndex = 4;
+            lblDescription.Text = "A Pokémon card collection manager powered by the TCGdex API. Browse expansions, search cards, view printings, and track card values.";
+            lblDescription.Click +=  lblDescription_Click ;
+            // 
+            // picRandomCard
+            // 
+            picRandomCard.BorderStyle = BorderStyle.FixedSingle;
+            picRandomCard.Location = new Point( 588, 38 );
+            picRandomCard.Margin = new Padding( 4 );
+            picRandomCard.Name = "picRandomCard";
+            picRandomCard.Size = new Size( 250, 348 );
+            picRandomCard.SizeMode = PictureBoxSizeMode.Zoom;
+            picRandomCard.TabIndex = 5;
+            picRandomCard.TabStop = false;
+            // 
+            // lblRandomCard
+            // 
+            lblRandomCard.Font = new Font( "Segoe UI", 8F );
+            lblRandomCard.ForeColor = Color.Gray;
+            lblRandomCard.Location = new Point( 588, 390 );
+            lblRandomCard.Margin = new Padding( 4, 0, 4, 0 );
+            lblRandomCard.Name = "lblRandomCard";
+            lblRandomCard.Size = new Size( 250, 75 );
+            lblRandomCard.TabIndex = 6;
+            lblRandomCard.Text = "Loading random card...";
+            lblRandomCard.TextAlign = ContentAlignment.TopCenter;
+            // 
+            // btnClose
+            // 
+            btnClose.DialogResult = DialogResult.OK;
+            btnClose.Font = new Font( "Segoe UI", 10F );
+            btnClose.Location = new Point( 650, 507 );
+            btnClose.Margin = new Padding( 4 );
+            btnClose.Name = "btnClose";
+            btnClose.Size = new Size( 188, 50 );
+            btnClose.TabIndex = 8;
+            btnClose.Text = "Close";
+            btnClose.UseVisualStyleBackColor = true;
+            // 
+            // btnNewCard
+            // 
+            btnNewCard.Font = new Font( "Segoe UI", 9F );
+            btnNewCard.Location = new Point( 361, 507 );
+            btnNewCard.Margin = new Padding( 4 );
+            btnNewCard.Name = "btnNewCard";
+            btnNewCard.Size = new Size( 250, 50 );
+            btnNewCard.TabIndex = 7;
+            btnNewCard.Text = "Show Another Card";
+            btnNewCard.UseVisualStyleBackColor = true;
+            btnNewCard.Click +=  BtnNewCard_Click ;
+            // 
+            // AboutBox
+            // 
+            AutoScaleDimensions = new SizeF( 10F, 25F );
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.White;
+            ClientSize = new Size( 872, 582 );
+            Controls.Add( lblTitle );
+            Controls.Add( lblVersion );
+            Controls.Add( lblCompany );
+            Controls.Add( lblDeveloper );
+            Controls.Add( lblDescription );
+            Controls.Add( picRandomCard );
+            Controls.Add( lblRandomCard );
+            Controls.Add( btnNewCard );
+            Controls.Add( btnClose );
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            Margin = new Padding( 4 );
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "AboutBox";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "About Pokémon Card Collector";
+            ( (System.ComponentModel.ISupportInitialize)picRandomCard ).EndInit();
+            ResumeLayout( false );
+        }
+
+        private Label lblTitle;
+        private Label lblVersion;
+        private Label lblCompany;
+        private Label lblDeveloper;
+        private Label lblDescription;
+        private PictureBox picRandomCard;
+        private Label lblRandomCard;
+        private Button btnClose;
+        private Button btnNewCard;
+    }
+}

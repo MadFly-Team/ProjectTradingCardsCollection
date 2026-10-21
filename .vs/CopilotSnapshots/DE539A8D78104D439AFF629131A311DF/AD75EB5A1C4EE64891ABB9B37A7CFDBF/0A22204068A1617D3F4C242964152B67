@@ -1,0 +1,39 @@
+﻿using ProjectMTGCollector.Forms;
+
+ApplicationConfiguration.Initialize();
+
+// Create and show splash screen
+SplashScreen? splashScreen = null;
+var splashThread = new Thread(() =>
+{
+    splashScreen = new SplashScreen();
+    Application.Run(splashScreen);
+});
+
+splashThread.SetApartmentState(ApartmentState.STA);
+splashThread.Start();
+
+// Wait for splash to initialize
+Thread.Sleep(500);
+
+// Update status messages
+if (splashScreen != null)
+{
+    splashScreen.Invoke(new Action(() => splashScreen.UpdateStatus("Initializing...")));
+    Thread.Sleep(800);
+    
+    splashScreen.Invoke(new Action(() => splashScreen.UpdateStatus("Loading services...")));
+    Thread.Sleep(800);
+    
+    splashScreen.Invoke(new Action(() => splashScreen.UpdateStatus("Starting application...")));
+    Thread.Sleep(500);
+    
+    // Close splash screen
+    splashScreen.Invoke(new Action(() => splashScreen.Close()));
+}
+
+// Wait for splash thread to finish
+splashThread.Join();
+
+// Now run the main form
+Application.Run(new MainForm());

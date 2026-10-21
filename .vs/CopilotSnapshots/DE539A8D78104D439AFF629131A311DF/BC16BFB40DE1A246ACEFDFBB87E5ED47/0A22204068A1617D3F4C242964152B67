@@ -1,0 +1,13 @@
+﻿using ProjectMTGCollector.Forms;
+
+Console.WriteLine(
+    "╔════════════════════════════════════════════════════════════════╗");
+Console.WriteLine(
+    "║    Magic: The Gathering Card Database Viewer                   ║");
+Console.WriteLine(
+    "║    Powered by Scryfall API                                     ║");
+Console.WriteLine(
+    "╚════════════════════════════════════════════════════════════════╝");
+
+ApplicationConfiguration.Initialize();
+Application.Run(new MainForm());

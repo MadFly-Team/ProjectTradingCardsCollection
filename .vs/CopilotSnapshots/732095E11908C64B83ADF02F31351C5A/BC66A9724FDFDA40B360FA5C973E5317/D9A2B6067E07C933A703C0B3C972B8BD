@@ -1,0 +1,486 @@
+﻿using System.Collections.Concurrent;
+using System.Globalization;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using ProjectMTGCollector.Models;
+
+namespace ProjectMTGCollector.Services;
+
+public record PageProgress(int Loaded, int? Total, int Page);
+
+public sealed class PokemonCardService
+{
+    private const string BaseUrl = "https://api.tcgdex.net/v2/en";
+    private static readonly HttpClient DefaultHttp = new() { Timeout = TimeSpan.FromSeconds(30) };
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
+    private readonly HttpClient _http;
+    private readonly SemaphoreSlim _requestLimit = new(6);
+    private readonly ConcurrentDictionary<string, Lazy<Task<Card?>>> _cards = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Lazy<Task<SetData?>>> _sets = new(StringComparer.OrdinalIgnoreCase);
+
+    public PokemonCardService(HttpClient? http = null) => _http = http ?? DefaultHttp;
+
+    public async Task<Card?> GetCardBySetAndCollectorAsync(string setCode, string collectorNumber)
+    {
+        var id = $"{setCode.Trim().ToLowerInvariant()}-{collectorNumber.Trim()}";
+        return await GetCardByIdAsync(id);
+    }
+
+    public Task<Card?> GetCardByIdAsync(string id) =>
+        GetCachedAsync(_cards, id, async () =>
+        {
+            var json = await GetJsonAsync($"{BaseUrl}/cards/{Uri.EscapeDataString(id)}");
+            if (json == null)
+                return null;
+
+            var data = JsonSerializer.Deserialize<CardData>(json, JsonOptions)
+                ?? throw new JsonException("TCGdex returned an empty card response.");
+            var card = MapCard(data);
+            var set = await GetSetDataAsync(card.Set);
+            card.ReleasedAt = set?.ReleaseDate;
+            return card;
+        });
+
+    public async Task<Card?> GetCardByNameAsync(string cardName)
+    {
+        var matches = await GetCardSummariesAsync(cardName, 50);
+        var match = matches.FirstOrDefault(card => string.Equals(card.Name, cardName, StringComparison.OrdinalIgnoreCase))
+                    ?? matches.FirstOrDefault();
+        return match == null ? null : await GetCardByIdAsync(match.Id);
+    }
+
+    public async Task<List<Card>> GetAllPrintingsAsync(string cardName)
+    {
+        var matches = await GetCardSummariesAsync(cardName, 100);
+        return await LoadCardDetailsAsync(matches);
+    }
+
+    public async Task<List<Card>> SearchCardsAsync(string query, int maxResults = 50)
+    {
+        if (string.IsNullOrWhiteSpace(query) || maxResults <= 0)
+            return new List<Card>();
+
+        var matches = await GetCardSummariesAsync(query, maxResults);
+        return await LoadCardDetailsAsync(matches);
+    }
+
+    public async Task<Card?> GetRandomCardAsync()
+    {
+        var sets = await GetSetSummariesAsync();
+        if (sets.Count == 0)
+            return null;
+
+        var random = Random.Shared;
+        var set = sets[random.Next(sets.Count)];
+        var setData = await GetSetDataAsync(set.Id);
+        if (setData?.Cards is not { Count: > 0 } cards)
+            return null;
+
+        return await GetCardByIdAsync(cards[random.Next(cards.Count)].Id);
+    }
+
+    public async Task<List<Card>> GetCardsBySetAsync(string setCode, IProgress<PageProgress>? progress = null)
+    {
+        var set = await GetSetDataAsync(setCode);
+        if (set?.Cards == null)
+            return new List<Card>();
+
+        var cards = set.Cards.Select(summary => MapCardSummary(summary, set)).ToList();
+        progress?.Report(new PageProgress(cards.Count, cards.Count, 1));
+        return cards;
+    }
+
+    public async Task<List<Set>> GetAllSetsAsync()
+    {
+        var sets = await GetSetSummariesAsync();
+        var details = await Task.WhenAll(sets.Select(async summary =>
+            await GetSetAsync(summary.Id)
+                ?? throw new HttpRequestException($"TCGdex set '{summary.Id}' was not found.")));
+        return details.ToList();
+    }
+
+    private async Task<List<SetSummary>> GetSetSummariesAsync()
+    {
+        var json = await GetJsonAsync($"{BaseUrl}/sets")
+            ?? throw new HttpRequestException("TCGdex's set list was not found.");
+        return JsonSerializer.Deserialize<List<SetSummary>>(json, JsonOptions)
+            ?? throw new JsonException("TCGdex returned an empty set list response.");
+    }
+
+    public async Task<Set?> GetSetAsync(string setCode)
+    {
+        var setData = await GetSetDataAsync(setCode);
+        return setData == null ? null : MapSet(setData);
+    }
+
+    private async Task<List<CardSummary>> GetCardSummariesAsync(string name, int maxResults)
+    {
+        var url = $"{BaseUrl}/cards?name={Uri.EscapeDataString(name.Trim())}";
+        var json = await GetJsonAsync(url);
+        var cards = JsonSerializer.Deserialize<List<CardSummary>>(json ?? "[]", JsonOptions)
+                    ?? new List<CardSummary>();
+        return cards.Take(maxResults).ToList();
+    }
+
+    private async Task<List<Card>> LoadCardDetailsAsync(List<CardSummary> summaries)
+    {
+        using var limiter = new SemaphoreSlim(6);
+        var tasks = summaries.Select(async summary =>
+        {
+            await limiter.WaitAsync();
+            try
+            {
+                return await GetCardByIdAsync(summary.Id)
+                    ?? throw new HttpRequestException($"TCGdex card '{summary.Id}' was not found.");
+            }
+            finally
+            {
+                limiter.Release();
+            }
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+    private Task<SetData?> GetSetDataAsync(string setCode)
+    {
+        var key = setCode.Trim().ToLowerInvariant();
+        return GetCachedAsync(_sets, key, async () =>
+        {
+            var json = await GetJsonAsync($"{BaseUrl}/sets/{Uri.EscapeDataString(key)}");
+            return json == null ? null : JsonSerializer.Deserialize<SetData>(json, JsonOptions)
+                ?? throw new JsonException("TCGdex returned an empty set response.");
+        });
+    }
+
+    private static async Task<T?> GetCachedAsync<T>(
+        ConcurrentDictionary<string, Lazy<Task<T?>>> cache, string key, Func<Task<T?>> load) where T : class
+    {
+        var request = cache.GetOrAdd(key, _ => new Lazy<Task<T?>>(load));
+        try
+        {
+            var result = await request.Value;
+            if (result == null)
+                cache.TryRemove(new KeyValuePair<string, Lazy<Task<T?>>>(key, request));
+            return result;
+        }
+        catch
+        {
+            cache.TryRemove(new KeyValuePair<string, Lazy<Task<T?>>>(key, request));
+            throw;
+        }
+    }
+
+    private async Task<string?> GetJsonAsync(string url)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var delay = TimeSpan.FromMilliseconds(300 * (1 << attempt));
+            await _requestLimit.WaitAsync();
+            try
+            {
+                using var response = await _http.GetAsync(url);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    return null;
+
+                var transient = response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
+                    || (int)response.StatusCode >= 500;
+                if (!transient || attempt >= 2)
+                {
+                    response.EnsureSuccessStatusCode();
+                    return await response.Content.ReadAsStringAsync();
+                }
+
+                var retryAfter = response.Headers.RetryAfter?.Delta
+                    ?? (response.Headers.RetryAfter?.Date - DateTimeOffset.UtcNow);
+                if (retryAfter.HasValue && retryAfter.Value > delay)
+                {
+                    if (retryAfter.Value > TimeSpan.FromSeconds(30))
+                        response.EnsureSuccessStatusCode();
+                    delay = retryAfter.Value;
+                }
+            }
+            catch (HttpRequestException ex) when (attempt < 2 && ex.StatusCode == null)
+            {
+                System.Diagnostics.Trace.TraceWarning($"TCGdex request failed; retrying {url}: {ex.Message}");
+            }
+            catch (TaskCanceledException ex) when (attempt < 2)
+            {
+                System.Diagnostics.Trace.TraceWarning($"TCGdex request timed out; retrying {url}: {ex.Message}");
+            }
+            finally
+            {
+                _requestLimit.Release();
+            }
+
+            await Task.Delay(delay);
+        }
+    }
+
+    private static Card MapCard(CardData data)
+    {
+        var set = data.Set;
+        var setCode = set?.Id ?? GetSetCode(data.Id);
+        var setName = set?.Name ?? setCode.ToUpperInvariant();
+        var types = data.Types ?? new List<string>();
+        var text = new List<string>();
+
+        if (data.Abilities != null)
+        {
+            text.AddRange(data.Abilities.Select(ability =>
+                $"{ability.Name} ({ability.Type}): {ability.Effect}"));
+        }
+
+        if (data.Attacks != null)
+        {
+            text.AddRange(data.Attacks.Select(attack =>
+            {
+                var cost = attack.Cost is { Count: > 0 } ? $"[{string.Join(", ", attack.Cost)}] " : string.Empty;
+                var damageValue = FormatJsonValue(attack.Damage);
+                var damage = string.IsNullOrWhiteSpace(damageValue) ? string.Empty : $" — {damageValue} damage";
+                var effect = string.IsNullOrWhiteSpace(attack.Effect) ? string.Empty : $"\n{attack.Effect}";
+                return $"{cost}{attack.Name}{damage}{effect}";
+            }));
+        }
+
+        var finishes = new List<string>();
+        if (data.Variants?.Normal == true)
+            finishes.Add("normal");
+        if (data.Variants?.Holo == true)
+            finishes.Add("holo");
+        if (data.Variants?.Reverse == true)
+            finishes.Add("reverse holo");
+        if (data.Variants?.FirstEdition == true)
+            finishes.Add("first edition");
+
+        var legalities = data.Legal == null
+            ? null
+            : new Dictionary<string, string>
+            {
+                ["standard"] = data.Legal.Standard ? "legal" : "not_legal",
+                ["expanded"] = data.Legal.Expanded ? "legal" : "not_legal"
+            };
+
+        var (usd, usdFoil) = GetPrices(data.Pricing?.TcgPlayer);
+        var (eur, eurFoil) = GetPrices(data.Pricing?.CardMarket);
+        var imageBase = data.Image?.TrimEnd('/');
+        var image = string.IsNullOrEmpty(imageBase) ? null : $"{imageBase}/high.png";
+        var lowImage = string.IsNullOrEmpty(imageBase) ? null : $"{imageBase}/low.png";
+        var hp = FormatJsonValue(data.Hp);
+        var setReleaseDate = set?.ReleaseDate;
+
+        return new Card
+        {
+            Id = data.Id,
+            Name = data.Name,
+            TypeLine = string.IsNullOrWhiteSpace(data.Stage) ? data.Category ?? string.Empty : $"{data.Category} — {data.Stage}",
+            OracleText = text.Count == 0 ? data.Effect : string.Join("\n\n", text),
+            Power = hp,
+            Toughness = string.IsNullOrEmpty(hp) ? null : "HP",
+            Colors = types,
+            Set = setCode,
+            SetName = setName,
+            CollectorNumber = data.LocalId ?? GetCollectorNumber(data.Id),
+            Rarity = data.Rarity ?? "Unknown",
+            Artist = data.Illustrator,
+            ImageUris = image == null ? null : new ImageUris { Small = lowImage, Normal = image, Large = image, Png = image },
+            Prices = usd == null && usdFoil == null && eur == null && eurFoil == null
+                ? null
+                : new Prices { Usd = usd, UsdFoil = usdFoil, Eur = eur, EurFoil = eurFoil },
+            Legalities = legalities,
+            ReleasedAt = setReleaseDate,
+            Finishes = finishes,
+            Foil = data.Variants?.Holo == true || data.Variants?.Reverse == true,
+            Nonfoil = data.Variants?.Normal == true,
+            Promo = data.Variants?.WPromo == true,
+            PromoTypes = data.Variants?.WPromo == true ? new List<string> { "promo" } : null
+        };
+    }
+
+    private static string? FormatJsonValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString(),
+        JsonValueKind.Number => value.ToString(),
+        _ => null
+    };
+
+    private static (string? Regular, string? Foil) GetPrices(TcgPlayerPricing? pricing)
+    {
+        if (pricing == null)
+            return (null, null);
+
+        static string? Format(decimal? value) => value?.ToString("0.##", CultureInfo.InvariantCulture);
+        return (Format(pricing.Normal?.MarketPrice ?? pricing.Normal?.MidPrice),
+                Format(pricing.Holofoil?.MarketPrice ?? pricing.ReverseHolofoil?.MarketPrice ?? pricing.Holofoil?.MidPrice ?? pricing.ReverseHolofoil?.MidPrice));
+    }
+
+    private static (string? Regular, string? Foil) GetPrices(CardMarketPricing? pricing)
+    {
+        if (pricing == null)
+            return (null, null);
+
+        static string? Format(decimal? value) => value?.ToString("0.##", CultureInfo.InvariantCulture);
+        return (Format(pricing.Average), Format(pricing.AverageHolo ?? pricing.AverageReverseHolo));
+    }
+
+    private static Card MapCardSummary(CardSummary summary, SetData? set)
+    {
+        var setCode = set?.Id ?? GetSetCode(summary.Id);
+        var imageBase = summary.Image?.TrimEnd('/');
+        var image = string.IsNullOrEmpty(imageBase) ? null : $"{imageBase}/high.png";
+        var lowImage = string.IsNullOrEmpty(imageBase) ? null : $"{imageBase}/low.png";
+
+        return new Card
+        {
+            Id = summary.Id,
+            Name = summary.Name,
+            Set = setCode,
+            SetName = set?.Name ?? setCode.ToUpperInvariant(),
+            CollectorNumber = summary.LocalId ?? GetCollectorNumber(summary.Id),
+            ReleasedAt = set?.ReleaseDate,
+            ImageUris = image == null ? null : new ImageUris { Small = lowImage, Normal = image, Large = image, Png = image }
+        };
+    }
+
+    private static Set MapSet(SetSummary data) => new()
+    {
+        Id = data.Id,
+        Code = data.Id,
+        Name = data.Name,
+        SetType = "Pokémon TCG",
+        ReleasedAt = data.ReleaseDate,
+        CardCount = data.CardCount?.Total ?? data.CardCount?.Official ?? 0
+    };
+
+    private static Set MapSet(SetData data) => new()
+    {
+        Id = data.Id,
+        Code = data.Id,
+        Name = data.Name,
+        SetType = "Pokémon TCG",
+        ReleasedAt = data.ReleaseDate,
+        CardCount = data.CardCount?.Total ?? data.CardCount?.Official ?? 0
+    };
+
+    private static string GetSetCode(string id)
+    {
+        var separator = id.LastIndexOf('-');
+        return separator < 0 ? id : id[..separator];
+    }
+
+    private static string GetCollectorNumber(string id)
+    {
+        var separator = id.LastIndexOf('-');
+        return separator < 0 ? id : id[(separator + 1)..];
+    }
+
+    private class CardSummary
+    {
+        public string Id { get; set; } = string.Empty;
+        public string? LocalId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Image { get; set; }
+    }
+
+    private sealed class CardData : CardSummary
+    {
+        public string? Category { get; set; }
+        public string? Illustrator { get; set; }
+        public string? Rarity { get; set; }
+        public JsonElement Hp { get; set; }
+        public List<string>? Types { get; set; }
+        public string? Stage { get; set; }
+        public string? Effect { get; set; }
+        public List<AttackData>? Attacks { get; set; }
+        public List<AbilityData>? Abilities { get; set; }
+        public SetData? Set { get; set; }
+        public VariantData? Variants { get; set; }
+        public LegalData? Legal { get; set; }
+        public PricingData? Pricing { get; set; }
+    }
+
+    private sealed class AttackData
+    {
+        public List<string>? Cost { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public JsonElement Damage { get; set; }
+        public string? Effect { get; set; }
+    }
+
+    private sealed class AbilityData
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Effect { get; set; } = string.Empty;
+    }
+
+    private sealed class VariantData
+    {
+        public bool Normal { get; set; }
+        public bool Holo { get; set; }
+        public bool Reverse { get; set; }
+        public bool FirstEdition { get; set; }
+        public bool WPromo { get; set; }
+    }
+
+    private sealed class LegalData
+    {
+        public bool Standard { get; set; }
+        public bool Expanded { get; set; }
+    }
+
+    private sealed class PricingData
+    {
+        public TcgPlayerPricing? TcgPlayer { get; set; }
+        public CardMarketPricing? CardMarket { get; set; }
+    }
+
+    private sealed class TcgPlayerPricing
+    {
+        public TcgPrice? Normal { get; set; }
+        public TcgPrice? Holofoil { get; set; }
+        [JsonPropertyName("reverse-holofoil")]
+        public TcgPrice? ReverseHolofoil { get; set; }
+    }
+
+    private sealed class TcgPrice
+    {
+        public decimal? MarketPrice { get; set; }
+        public decimal? MidPrice { get; set; }
+    }
+
+    private sealed class CardMarketPricing
+    {
+        [JsonPropertyName("avg")]
+        public decimal? Average { get; set; }
+        [JsonPropertyName("avg-holo")]
+        public decimal? AverageHolo { get; set; }
+        [JsonPropertyName("avg-reverse-holo")]
+        public decimal? AverageReverseHolo { get; set; }
+    }
+
+    private class SetSummary
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? ReleaseDate { get; set; }
+        public CardCountData? CardCount { get; set; }
+    }
+
+    private sealed class SetData : SetSummary
+    {
+        public List<CardSummary>? Cards { get; set; }
+    }
+
+    private sealed class CardCountData
+    {
+        public int Total { get; set; }
+        public int Official { get; set; }
+    }
+}

@@ -1,0 +1,48 @@
+using System.Text.Json.Serialization;
+
+namespace ProjectMTGCollector.Models;
+
+public class ScryfallResponse<T>
+{
+    [JsonPropertyName("object")]
+    public string Object { get; set; } = string.Empty;
+
+    [JsonPropertyName("total_cards")]
+    public int? TotalCards { get; set; }
+
+    [JsonPropertyName("has_more")]
+    public bool HasMore { get; set; }
+
+    [JsonPropertyName("next_page")]
+    public string? NextPage { get; set; }
+
+    [JsonPropertyName("data")]
+    public List<T> Data { get; set; } = new();
+}
+
+public class Set
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("code")]
+    public string Code { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("set_type")]
+    public string SetType { get; set; } = string.Empty;
+
+    [JsonPropertyName("released_at")]
+    public string? ReleasedAt { get; set; }
+
+    [JsonPropertyName("card_count")]
+    public int CardCount { get; set; }
+
+    [JsonPropertyName("digital")]
+    public bool Digital { get; set; }
+
+    [JsonPropertyName("icon_svg_uri")]
+    public string? IconSvgUri { get; set; }
+}

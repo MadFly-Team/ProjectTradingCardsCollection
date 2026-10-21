@@ -1,0 +1,313 @@
+﻿using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms;
+
+// This partial class contains collection management methods for MainForm
+public partial class MainForm
+{
+    private Collection? _currentCollection;
+    private CollectionFolder? _currentFolder;
+
+    // Add to Collection button handlers
+    private void BtnAddToCollection_Click(object? sender, EventArgs e)
+    {
+        if (_currentCard != null)
+        {
+            ShowAddToCollectionDialog(_currentCard);
+            btnAddToCollection.Enabled = true;
+        }
+    }
+
+    private void BtnAddSelectedToCollection_Click(object? sender, EventArgs e)
+    {
+        if (_currentSelectedSetCard != null)
+        {
+            ShowAddToCollectionDialog(_currentSelectedSetCard);
+            btnAddSelectedToCollection.Enabled = true;
+        }
+    }
+
+    // Collections Tab Event Handlers
+    private void ListViewCollections_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (listViewCollections.SelectedItems.Count > 0)
+        {
+            var collection = (Collection)listViewCollections.SelectedItems[0].Tag;
+            _currentCollection = collection;
+            DisplayCollectionDetails(collection);
+            btnEditCollection.Enabled = true;
+            btnDeleteCollection.Enabled = true;
+            btnNewCollectionFolder.Enabled = true;
+        }
+        else
+        {
+            _currentCollection = null;
+            btnEditCollection.Enabled = false;
+            btnDeleteCollection.Enabled = false;
+            btnNewCollectionFolder.Enabled = false;
+        }
+    }
+
+    private void TreeViewCollectionFolders_AfterSelect(object? sender, TreeViewEventArgs e)
+    {
+        if (e.Node?.Tag is CollectionFolder folder)
+        {
+            _currentFolder = folder;
+            DisplayFolderCards(folder);
+            btnDeleteFolder.Enabled = true;
+        }
+        else
+        {
+            _currentFolder = null;
+            listViewCollectionCards.Items.Clear();
+            btnDeleteFolder.Enabled = false;
+        }
+        
+        btnRemoveCard.Enabled = false;
+    }
+
+    private async void BtnNewCollection_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new CreateCollectionDialog();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                await _collectionService.CreateCollectionAsync(
+                    dialog.CollectionName,
+                    dialog.CollectionDescription
+                );
+                
+                RefreshCollectionsTab();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating collection: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnEditCollection_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null)
+            return;
+
+        using var dialog = new CreateCollectionDialog();
+        // Pre-fill with current values - would need to add properties to dialog
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                _currentCollection.Name = dialog.CollectionName;
+                _currentCollection.Description = dialog.CollectionDescription;
+                await _collectionService.UpdateCollectionAsync(_currentCollection);
+                
+                RefreshCollectionsTab();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating collection: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnDeleteCollection_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null)
+            return;
+
+        var result = MessageBox.Show(
+            $"Are you sure you want to delete '{_currentCollection.Name}'? This will remove all folders and cards in this collection.",
+            "Confirm Delete",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (result == DialogResult.Yes)
+        {
+            try
+            {
+                await _collectionService.DeleteCollectionAsync(_currentCollection.Id);
+                RefreshCollectionsTab();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error deleting collection: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnNewCollectionFolder_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null)
+            return;
+
+        using var dialog = new CreateFolderDialog();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                await _collectionService.AddFolderAsync(
+                    _currentCollection.Id,
+                    dialog.FolderName,
+                    dialog.FolderDescription
+                );
+                
+                LoadCollectionFolders(_currentCollection);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating folder: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnDeleteFolder_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null || _currentFolder == null)
+            return;
+
+        var result = MessageBox.Show(
+            $"Are you sure you want to delete folder '{_currentFolder.Name}'? This will remove all cards in this folder.",
+            "Confirm Delete",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (result == DialogResult.Yes)
+        {
+            try
+            {
+                await _collectionService.DeleteFolderAsync(_currentCollection.Id, _currentFolder.Id);
+                LoadCollectionFolders(_currentCollection);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error deleting folder: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private async void BtnRemoveCard_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null || _currentFolder == null || listViewCollectionCards.SelectedItems.Count == 0)
+            return;
+
+        var selectedCard = (CollectionCard)listViewCollectionCards.SelectedItems[0].Tag;
+
+        var result = MessageBox.Show(
+            $"Remove {selectedCard.Quantity}x {selectedCard.CardName} from this folder?",
+            "Confirm Remove",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+
+        if (result == DialogResult.Yes)
+        {
+            try
+            {
+                await _collectionService.RemoveCardFromFolderAsync(
+                    _currentCollection.Id,
+                    _currentFolder.Id,
+                    selectedCard.CardId,
+                    selectedCard.IsFoil
+                );
+                
+                DisplayFolderCards(_currentFolder);
+                DisplayCollectionDetails(_currentCollection);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error removing card: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    // Display methods for Collections Tab
+    private void RefreshCollectionsTab()
+    {
+        listViewCollections.Items.Clear();
+        var collections = _collectionService.GetAllCollections();
+
+        foreach (var collection in collections)
+        {
+            var item = new ListViewItem(collection.Name);
+            item.SubItems.Add(collection.GetTotalCardCount().ToString());
+            item.Tag = collection;
+            listViewCollections.Items.Add(item);
+        }
+
+        // Clear details if nothing selected
+        if (_currentCollection != null)
+        {
+            var match = collections.FirstOrDefault(c => c.Id == _currentCollection.Id);
+            if (match != null)
+            {
+                _currentCollection = match;
+                DisplayCollectionDetails(match);
+            }
+        }
+    }
+
+    private void DisplayCollectionDetails(Collection collection)
+    {
+        lblCollectionName.Text = collection.Name;
+        lblCollectionDescription.Text = collection.Description;
+        
+        var totalCards = collection.GetTotalCardCount();
+        var totalValue = collection.GetTotalValue();
+        
+        lblCollectionStats.Text = $"?? {totalCards} cards | ?? ${totalValue:F2} total value";
+
+        LoadCollectionFolders(collection);
+    }
+
+    private void LoadCollectionFolders(Collection collection)
+    {
+        treeViewCollectionFolders.Nodes.Clear();
+
+        var rootNode = new TreeNode(collection.Name)
+        {
+            Tag = collection,
+            NodeFont = new Font("Segoe UI", 10F, FontStyle.Bold)
+        };
+
+        foreach (var folder in collection.Folders)
+        {
+            var folderNode = new TreeNode($"{folder.Name} ({folder.GetTotalCardCount()} cards)")
+            {
+                Tag = folder
+            };
+            rootNode.Nodes.Add(folderNode);
+        }
+
+        treeViewCollectionFolders.Nodes.Add(rootNode);
+        rootNode.Expand();
+    }
+
+    private void DisplayFolderCards(CollectionFolder folder)
+    {
+        listViewCollectionCards.Items.Clear();
+
+        foreach (var card in folder.Cards)
+        {
+            var item = new ListViewItem(card.CardName);
+            item.SubItems.Add($"{card.SetName} ({card.SetCode.ToUpper()})");
+            item.SubItems.Add(card.CollectorNumber);
+            item.SubItems.Add(card.Quantity.ToString());
+            item.SubItems.Add(card.IsFoil ? "Yes" : "No");
+            item.SubItems.Add(card.Condition);
+            item.SubItems.Add(card.CurrentPrice.HasValue ? $"${card.CurrentPrice.Value:F2}" : "N/A");
+            item.Tag = card;
+            
+            listViewCollectionCards.Items.Add(item);
+        }
+
+        // Enable/disable remove button
+        btnRemoveCard.Enabled = listViewCollectionCards.Items.Count > 0;
+    }
+}

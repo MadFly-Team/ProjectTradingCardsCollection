@@ -1,0 +1,21 @@
+﻿# Pokémon Card Collector
+
+A separate Windows Forms Pokémon card collector based on the existing MTG Collector UI. It supports card-name lookup, set browsing, card images, printing/finish details, collection folders, price display, and the webcam/OCR workflow.
+
+## Data and storage
+
+- Card and set data is retrieved from the public [TCGdex API](https://tcgdex.dev/), which does not require an API key.
+- Set release dates are loaded from each set's detail endpoint because the set list omits them. The first set-list load therefore takes longer; set metadata and full card details are cached for the current session.
+- Concurrent requests for the same card or set share one download. Requests are limited to six at a time, with up to three attempts for temporary network/server errors and rate limiting. Failed lookups are not cached, so selecting a card again retries it.
+- Prices are shown when supplied by TCGdex's TCGplayer or Cardmarket data. They can be missing for some cards and finishes; GBP values are estimates using the app's exchange-rate feed.
+- Cards in Set loads full card details and prices before displaying the list or thumbnails, with download progress shown. Both views show normal pricing when available, otherwise a labeled holo price; N/A means neither price is supplied. The initial load takes longer, and subsequent loads reuse the session cache.
+- Collections are stored separately
+- OCR requires the included `eng.traineddata` file, which is copied to the build output.
+
+## Build
+
+Open `ProjectPokemonCollector.csproj` in Visual Studio or build it with the .NET 10 SDK on Windows:
+
+```powershell
+dotnet build .\ProjectPokemonCollector.csproj
+```

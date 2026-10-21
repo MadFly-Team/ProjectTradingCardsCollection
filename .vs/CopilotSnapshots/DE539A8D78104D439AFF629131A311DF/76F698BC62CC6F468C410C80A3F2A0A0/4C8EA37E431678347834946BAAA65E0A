@@ -1,0 +1,148 @@
+﻿namespace ProjectMTGCollector.Forms
+{
+    partial class WebcamScannerForm
+    {
+        private System.ComponentModel.IContainer components = null;
+        private ComboBox cmbCameras;
+        private Button btnStart;
+        private Button btnStop;
+        private Button btnCapture;
+        private Button btnAdd;
+        private PictureBox picPreview;
+        private PictureBox picCaptured;
+        private Label lblStatus;
+        private TextBox txtCardName;
+        private Label lblCardName;
+        private Label lblPreview;
+        private Label lblCaptured;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.cmbCameras = new ComboBox();
+            this.btnStart = new Button();
+            this.btnStop = new Button();
+            this.btnCapture = new Button();
+            this.btnAdd = new Button();
+            this.picPreview = new PictureBox();
+            this.picCaptured = new PictureBox();
+            this.lblStatus = new Label();
+            this.txtCardName = new TextBox();
+            this.lblCardName = new Label();
+            this.lblPreview = new Label();
+            this.lblCaptured = new Label();
+            ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picCaptured)).BeginInit();
+            this.SuspendLayout();
+            
+            // cmbCameras
+            this.cmbCameras.DropDownStyle = ComboBoxStyle.DropDownList;
+            this.cmbCameras.Location = new Point(20, 20);
+            this.cmbCameras.Size = new Size(300, 28);
+            
+            // btnStart
+            this.btnStart.Location = new Point(330, 20);
+            this.btnStart.Size = new Size(90, 28);
+            this.btnStart.Text = "Start";
+            this.btnStart.Click += BtnStart_Click;
+            
+            // btnStop
+            this.btnStop.Location = new Point(430, 20);
+            this.btnStop.Size = new Size(90, 28);
+            this.btnStop.Text = "Stop";
+            this.btnStop.Click += BtnStop_Click;
+            this.btnStop.Enabled = false;
+            
+            // btnCapture
+            this.btnCapture.Location = new Point(530, 20);
+            this.btnCapture.Size = new Size(90, 28);
+            this.btnCapture.Text = "Capture";
+            this.btnCapture.Click += BtnCapture_Click;
+            this.btnCapture.Enabled = false;
+            
+            // lblPreview
+            this.lblPreview.Location = new Point(20, 60);
+            this.lblPreview.Size = new Size(240, 20);
+            this.lblPreview.Text = "Live Preview";
+            this.lblPreview.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            
+            // picPreview
+            this.picPreview.Location = new Point(20, 85);
+            this.picPreview.Size = new Size(360, 270);
+            this.picPreview.BorderStyle = BorderStyle.FixedSingle;
+            this.picPreview.SizeMode = PictureBoxSizeMode.Zoom;
+            
+            // lblCaptured
+            this.lblCaptured.Location = new Point(400, 60);
+            this.lblCaptured.Size = new Size(240, 20);
+            this.lblCaptured.Text = "Captured";
+            this.lblCaptured.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            
+            // picCaptured
+            this.picCaptured.Location = new Point(400, 85);
+            this.picCaptured.Size = new Size(360, 270);
+            this.picCaptured.BorderStyle = BorderStyle.FixedSingle;
+            this.picCaptured.SizeMode = PictureBoxSizeMode.Zoom;
+            
+            // lblCardName
+            this.lblCardName.Location = new Point(20, 370);
+            this.lblCardName.Size = new Size(120, 22);
+            this.lblCardName.Text = "Card Name:";
+            this.lblCardName.Font = new Font("Segoe UI", 9F);
+            
+            // txtCardName
+            this.txtCardName.Location = new Point(140, 366);
+            this.txtCardName.Size = new Size(360, 27);
+            this.txtCardName.Font = new Font("Segoe UI", 9F);
+            
+            // btnAdd
+            this.btnAdd.Location = new Point(520, 365);
+            this.btnAdd.Size = new Size(120, 30);
+            this.btnAdd.Text = "Add to Collection";
+            this.btnAdd.Click += BtnAdd_Click;
+            
+            // lblStatus
+            this.lblStatus.Location = new Point(20, 410);
+            this.lblStatus.Size = new Size(740, 25);
+            this.lblStatus.Text = "Select a camera and start preview.";
+            this.lblStatus.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            this.lblStatus.ForeColor = Color.Gray;
+            
+            // WebcamScannerForm
+            this.AutoScaleDimensions = new SizeF(8F, 20F);
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(800, 460);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.Text = "Webcam Scanner";
+            
+            this.Controls.Add(this.cmbCameras);
+            this.Controls.Add(this.btnStart);
+            this.Controls.Add(this.btnStop);
+            this.Controls.Add(this.btnCapture);
+            this.Controls.Add(this.lblPreview);
+            this.Controls.Add(this.picPreview);
+            this.Controls.Add(this.lblCaptured);
+            this.Controls.Add(this.picCaptured);
+            this.Controls.Add(this.lblCardName);
+            this.Controls.Add(this.txtCardName);
+            this.Controls.Add(this.btnAdd);
+            this.Controls.Add(this.lblStatus);
+            
+            ((System.ComponentModel.ISupportInitialize)(this.picPreview)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picCaptured)).EndInit();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+        }
+    }
+}

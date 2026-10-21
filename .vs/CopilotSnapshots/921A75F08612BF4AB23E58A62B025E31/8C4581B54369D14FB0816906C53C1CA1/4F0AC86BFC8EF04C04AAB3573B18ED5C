@@ -1,0 +1,112 @@
+﻿using System.Globalization;
+using System.Net;
+using System.Reflection;
+using System.Text.Json;
+using ProjectMTGCollector.Forms;
+using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+internal static class Program
+{
+    private static int _checks;
+    private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+    private static void Check(bool value, string name)
+    {
+        if (!value) throw new InvalidOperationException(name);
+        _checks++;
+    }
+
+    [STAThread]
+    private static void Main()
+    {
+        ApplicationConfiguration.Initialize();
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+        var handler = new RateHandler();
+        using var http = new HttpClient(handler);
+        var service = new GbpPriceService(http);
+        Check(service.FormatPrice(new Prices { Usd = "10.00" }) == "$10.00 / GBP unavailable", "Offline original value");
+        service.LoadRatesAsync().GetAwaiter().GetResult();
+        Check(service.RateDate == new DateOnly(2026, 10, 16), "Rate date parsed");
+        Check(service.ConvertToGbp(10m, "USD") == 8m, "USD conversion");
+        Check(service.ConvertToGbp(10m, "EUR") == 10m, "EUR cross-rate conversion");
+        Check(service.ConvertToGbp(10m, null) == null, "Unknown currency not guessed");
+        Check(service.FormatPrice(new Prices { Usd = "10.00", Eur = "20.00" }) == "$10.00 / ~\u00a38.00 GBP", "USD preference and invariant parsing");
+        Check(service.FormatPrice(new Prices { Eur = "10.00" }) == "\u20ac10.00 / ~\u00a310.00 GBP", "EUR fallback");
+        Check(service.FormatPrice(new Prices { Usd = "broken", Eur = "10.00" }) == "\u20ac10.00 / ~\u00a310.00 GBP", "Invalid USD falls back to valid EUR");
+        Check(service.FormatPrice(new Prices { UsdFoil = "25.00" }, true) == "$25.00 / ~\u00a320.00 GBP", "Foil USD");
+        Check(service.FormatPrice(new Prices { EurFoil = "25.00" }, true) == "\u20ac25.00 / ~\u00a325.00 GBP", "Foil EUR");
+        Check(service.FormatPrice(new Prices { Usd = "0.00" }) == "$0.00 / ~\u00a30.00 GBP", "Zero price remains valid");
+        Check(service.FormatPrice(null) == "N/A" && service.FormatPrice(new Prices { Usd = "-1" }) == "N/A", "Missing/negative prices");
+        Check(service.FormatEstimate(1.234m, "USD") == "~\u00a30.99 GBP", "Two decimal GBP rounding");
+        Check(handler.Requests == 1, "Formatting does not fetch rates per card");
+        var usd = new CollectionCard { CurrentPrice = 10m, PriceCurrency = "USD", Quantity = 3 };
+        var eur = new CollectionCard { CurrentPrice = 5m, PriceCurrency = "EUR", Quantity = 2 };
+        Check(service.FormatCollectionTotal(new[] { usd, eur }) == "30.00 USD + 10.00 EUR | ~\u00a334.00 GBP total", "Mixed-currency quantity-weighted total");
+        Check(service.FormatCollectionTotal(new[] { new CollectionCard { CurrentPrice = 0.01m, PriceCurrency = "USD", Quantity = 3 } }).EndsWith("~\u00a30.02 GBP total"), "Round total only after multiplication");
+        var legacy = JsonSerializer.Deserialize<CollectionCard>("{\"currentPrice\":12.5,\"quantity\":2}")!;
+        Check(legacy.PriceCurrency == null && service.FormatCollectionPrice(legacy).Contains("currency unknown"), "Legacy price currency stays unknown");
+        Check(service.FormatCollectionTotal(new[] { usd, legacy }).Contains("GBP total unavailable"), "No misleading partial total for legacy prices");
+        Check(service.FormatCollectionPrice(new CollectionCard()) == "N/A", "Missing collection value");
+        Check(service.FormatCollectionTotal(new[] { usd, new CollectionCard() }).EndsWith("~\u00a324.00 GBP total"), "Unpriced entries contribute zero");
+        var saved = JsonSerializer.Deserialize<CollectionCard>(JsonSerializer.Serialize(eur))!;
+        Check(saved.PriceCurrency == "EUR" && saved.CurrentPrice == 5m, "Source currency and price survive persistence");
+        foreach (var body in new[] { "[]", "{}", "{\"base\":4}", "{\"base\":\"USD\",\"rates\":[]}", "{\"base\":\"USD\",\"date\":\"2026-10-16\",\"rates\":{\"GBP\":0,\"EUR\":0.8}}", "{\"base\":\"USD\",\"date\":\"bad\",\"rates\":{\"GBP\":0.8,\"EUR\":0.8}}" })
+        {
+            using var badHttp = new HttpClient(new RateHandler { Body = body });
+            try { new GbpPriceService(badHttp).LoadRatesAsync().GetAwaiter().GetResult(); throw new InvalidOperationException("Invalid rates accepted"); }
+            catch (JsonException) { _checks++; }
+        }
+        using (var badHttp = new HttpClient(new RateHandler { Status = HttpStatusCode.ServiceUnavailable }))
+        {
+            try { new GbpPriceService(badHttp).LoadRatesAsync().GetAwaiter().GetResult(); throw new InvalidOperationException("HTTP failure accepted"); }
+            catch (HttpRequestException) { _checks++; }
+        }
+        using var form = new MainForm();
+        T Field<T>(string name) => (T)typeof(MainForm).GetField(name, Private)!.GetValue(form)!;
+        object? Call(string name, params object?[] args) => typeof(MainForm).GetMethod(name, Private)!.Invoke(form, args);
+        typeof(MainForm).GetField("_gbpPrices", Private)!.SetValue(form, service);
+        var card = new Card { Name = "GBP check", CollectorNumber = "1", Prices = new Prices { Usd = "10.00", UsdFoil = "25.00", Eur = "12.00", EurFoil = "30.00", Tix = "2.00" } };
+        var header = (string)Call("FormatCardValue", card.Prices)!;
+        Check(header.Contains("~\u00a38.00 GBP") && header.Contains("~\u00a320.00 GBP") && header.Contains("2026-10-16"), "Detail header includes both GBP finishes and rate date");
+        var details = (string)Call("FormatDetailedPrices", card)!;
+        Check(details.Contains("~\u00a38.00 GBP") && details.Contains("MTGO Tix: 2.00") && details.Contains("EUR (Foil)"), "Detailed source/GBP/tix values preserved");
+        var variants = new List<Card> { card };
+        Call("DisplayVariants", variants);
+        Call("DisplaySelectedCardVariants", variants);
+        Check(Field<ListView>("listViewVariants").Items[0].SubItems[3].Text == "$10.00 / ~\u00a38.00 GBP", "Search variant GBP");
+        Check(Field<ListView>("listViewSelectedVariants").Items[0].SubItems[4].Text == "$25.00 / ~\u00a320.00 GBP", "Set variant foil GBP");
+        Field<ComboBox>("cmbViewMode").SelectedIndex = 1;
+        typeof(MainForm).GetField("_currentSetCards", Private)!.SetValue(form, variants);
+        ((Task)Call("ApplySortAndDisplay")!).GetAwaiter().GetResult();
+        Check(Field<ListView>("listViewSetCards").Items[0].SubItems[3].Text == "$10.00 / ~\u00a38.00 GBP", "Inactive-tab list refresh retains fix and displays GBP");
+        var folder = new CollectionFolder { Cards = new List<CollectionCard> { usd, eur } };
+        Call("DisplayFolderCards", folder);
+        Check(Field<ListView>("listViewCollectionCards").Items[0].SubItems[6].Text.Contains("~\u00a38.00 GBP"), "Collection card GBP");
+        Call("DisplayCollectionDetails", new Collection { Folders = new List<CollectionFolder> { folder } });
+        Check(Field<Label>("lblCollectionStats").Text.Contains("~\u00a334.00 GBP total"), "Collection total GBP wired to UI");
+        var collectionService = Field<CollectionService>("_collectionService");
+        var priceMethod = typeof(CollectionService).GetMethod("GetCardPrice", Private)!;
+        var currencyMethod = typeof(CollectionService).GetMethod("GetCardPriceCurrency", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Check((decimal)priceMethod.Invoke(collectionService, new object[] { card, false })! == 10m, "Collection price parsed invariantly");
+        Check((string)currencyMethod.Invoke(null, new object[] { card, true })! == "USD", "Collection foil source metadata");
+        var euroOnly = new Card { Prices = new Prices { EurFoil = "10.50" } };
+        Check((decimal)priceMethod.Invoke(collectionService, new object[] { euroOnly, true })! == 10.5m && (string)currencyMethod.Invoke(null, new object[] { euroOnly, true })! == "EUR", "EUR-only saved foil price and metadata");
+        var live = new GbpPriceService();
+        Task.Run(() => live.LoadRatesAsync()).GetAwaiter().GetResult();
+        Check(live.RateDate.HasValue && live.ConvertToGbp(1m, "USD") > 0 && live.ConvertToGbp(1m, "EUR") > 0, "Live provider integration");
+        Console.WriteLine($"PASS: {_checks} checks, including deterministic conversion, error handling, persistence, UI surfaces, and live provider ({live.RateDate:yyyy-MM-dd}).");
+    }
+
+    private sealed class RateHandler : HttpMessageHandler
+    {
+        public string Body { get; init; } = "{\"base\":\"USD\",\"date\":\"2026-10-16\",\"rates\":{\"GBP\":0.8,\"EUR\":0.8}}";
+        public HttpStatusCode Status { get; init; } = HttpStatusCode.OK;
+        public int Requests { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri!.Host != "api.frankfurter.dev") throw new InvalidOperationException("Unexpected provider");
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(Body) });
+        }
+    }
+}

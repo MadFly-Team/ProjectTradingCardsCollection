@@ -1,0 +1,1073 @@
+﻿using ProjectMTGCollector.Models;
+using ProjectMTGCollector.Services;
+
+namespace ProjectMTGCollector.Forms;
+
+public partial class MainForm : Form
+{
+    private readonly ScryfallService _scryfallService;
+    private readonly ImageCacheService _imageCacheService;
+    private readonly CollectionService _collectionService;
+    private List<Set> _allSets = new();
+    private Set? _currentSelectedSet;
+    private List<Card> _currentSetCards = new();
+    private Card? _currentCard;
+    private Card? _currentSelectedSetCard;
+    private List<Card> _currentCardVariants = new();
+    private List<Card> _currentSelectedCardVariants = new();
+    private bool _isAscendingSort = true;
+    private ColorTheme _currentTheme;
+    private int _setListSortColumn = -1;
+    private bool _setListSortAscending = true;
+
+    public MainForm()
+    {
+        InitializeComponent();
+        _scryfallService = new ScryfallService();
+        _imageCacheService = new ImageCacheService();
+        _collectionService = new CollectionService();
+        
+        // Set default theme
+        _currentTheme = ColorTheme.GetAllThemes()[0]; // Default Light theme
+        ApplyTheme(_currentTheme);
+        
+        // Enable column click sorting for sets list
+        listViewSets.ColumnClick += ListViewSets_ColumnClick;
+        
+        // Load collections on startup
+        _ = LoadCollectionsAsync();
+    }
+
+    private async Task LoadCollectionsAsync()
+    {
+        try
+        {
+            await _collectionService.LoadCollectionsAsync();
+            // Refresh collections tab if it exists
+            if (tabControl.TabPages.Count > 3)
+            {
+                RefreshCollectionsTab();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading collections: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    // Add to collection methods
+    private async void ShowAddToCollectionDialog(Card card)
+    {
+        using var dialog = new AddToCollectionDialog(_collectionService, card);
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            // Refresh collections tab if visible
+            if (tabControl.SelectedTab?.Name == "tabCollections")
+            {
+                RefreshCollectionsTab();
+            }
+        }
+    }
+
+    // Menu Event Handlers
+    private void ExitToolStripMenuItem_Click(object? sender, EventArgs e)
+    {
+        Application.Exit();
+    }
+
+    private void AboutToolStripMenuItem_Click(object? sender, EventArgs e)
+    {
+        using var aboutBox = new AboutBox();
+        aboutBox.ShowDialog(this);
+    }
+
+    private void PreferencesToolStripMenuItem_Click(object? sender, EventArgs e)
+    {
+        using var preferencesDialog = new PreferencesDialog(_currentTheme);
+        if (preferencesDialog.ShowDialog(this) == DialogResult.OK)
+        {
+            if (preferencesDialog.SelectedTheme != null)
+            {
+                _currentTheme = preferencesDialog.SelectedTheme;
+                ApplyTheme(_currentTheme);
+            }
+        }
+    }
+
+    public void ApplyTheme(ColorTheme theme)
+    {
+        // Apply to main form
+        this.BackColor = theme.BackColor;
+        
+        // Apply to menu strip
+        menuStrip.BackColor = theme.BackColor;
+        menuStrip.ForeColor = theme.ForeColor;
+        
+        // Apply to all tab pages
+        foreach (TabPage tab in tabControl.TabPages)
+        {
+            tab.BackColor = theme.BackColor;
+            tab.ForeColor = theme.ForeColor;
+        }
+        
+        tabControl.BackColor = theme.BackColor;
+        
+        // Search Card Tab
+        ApplyThemeToControl(txtSearchCard, theme);
+        ApplyThemeToButton(btnSearchCard, theme);
+        ApplyThemeToButton(btnLoadVariants, theme);
+        panelCardDetails.BackColor = theme.PanelBackColor;
+        ApplyThemeToLabels(panelCardDetails, theme);
+        listViewVariants.BackColor = theme.ControlBackColor;
+        listViewVariants.ForeColor = theme.ForeColor;
+        
+        // Browse Sets Tab
+        ApplyThemeToControl(txtSearchSet, theme);
+        ApplyThemeToButton(btnSearchSet, theme);
+        listViewSets.BackColor = theme.ControlBackColor;
+        listViewSets.ForeColor = theme.ForeColor;
+        panelSetDetails.BackColor = theme.PanelBackColor;
+        ApplyThemeToLabels(panelSetDetails, theme);
+        ApplyThemeToButton(btnViewSetCards, theme);
+        
+        // Set Cards Tab
+        ApplyThemeToLabels(tabSetCards, theme);
+        ApplyThemeToControl(cmbSortBy, theme);
+        ApplyThemeToButton(btnToggleSortOrder, theme);
+        flowLayoutPanelCards.BackColor = theme.PanelBackColor;
+        panelCardInfo.BackColor = theme.PanelBackColor;
+        ApplyThemeToLabels(panelCardInfo, theme);
+        ApplyThemeToButton(btnLoadSelectedVariants, theme);
+        listViewSelectedVariants.BackColor = theme.ControlBackColor;
+        listViewSelectedVariants.ForeColor = theme.ForeColor;
+        
+        // Refresh the form
+        this.Refresh();
+    }
+
+    private void ApplyThemeToControl(Control control, ColorTheme theme)
+    {
+        control.BackColor = theme.ControlBackColor;
+        control.ForeColor = theme.ForeColor;
+    }
+
+    private void ApplyThemeToButton(Button button, ColorTheme theme)
+    {
+        button.BackColor = theme.ButtonBackColor;
+        button.ForeColor = theme.ButtonForeColor;
+        button.FlatStyle = FlatStyle.Standard;
+    }
+
+    private void ApplyThemeToLabels(Control parent, ColorTheme theme)
+    {
+        foreach (Control control in parent.Controls)
+        {
+            if (control is Label label)
+            {
+                // Preserve special label colors (like value in green)
+                if (label == lblCardValue || label == lblSelectedCardValue)
+                {
+                    // Keep the green color for value labels
+                    continue;
+                }
+                label.ForeColor = theme.ForeColor;
+            }
+            else if (control.HasChildren)
+            {
+                ApplyThemeToLabels(control, theme);
+            }
+        }
+    }
+
+    // Double-click handlers for images
+    private void PicCardImage_DoubleClick(object? sender, EventArgs e)
+    {
+        if (picCardImage.Image != null && _currentCard != null)
+        {
+            using var imageViewer = new ImageViewerForm(picCardImage.Image, _currentCard.Name);
+            imageViewer.ShowDialog(this);
+        }
+    }
+
+    private void PicSelectedCard_DoubleClick(object? sender, EventArgs e)
+    {
+        if (picSelectedCard.Image != null && _currentSelectedSetCard != null)
+        {
+            using var imageViewer = new ImageViewerForm(picSelectedCard.Image, _currentSelectedSetCard.Name);
+            imageViewer.ShowDialog(this);
+        }
+    }
+
+    // Double-click handler for sets list
+    private async void ListViewSets_DoubleClick(object? sender, EventArgs e)
+    {
+        if (listViewSets.SelectedItems.Count > 0 && _currentSelectedSet != null)
+        {
+            await LoadSetCards(_currentSelectedSet);
+            tabControl.SelectedTab = tabSetCards;
+        }
+    }
+
+    // Column click handler for sets list sorting
+    private void ListViewSets_ColumnClick(object? sender, ColumnClickEventArgs e)
+    {
+        // Determine if clicked column is already the sort column
+        if (e.Column == _setListSortColumn)
+        {
+            // Reverse the current sort direction
+            _setListSortAscending = !_setListSortAscending;
+        }
+        else
+        {
+            // Set the column number that is to be sorted; default to ascending
+            _setListSortColumn = e.Column;
+            _setListSortAscending = true;
+        }
+
+        // Sort the sets based on the selected column
+        SortSetsList();
+    }
+
+    private void SortSetsList()
+    {
+        if (_allSets.Count == 0)
+            return;
+
+        var sortedSets = _setListSortColumn switch
+        {
+            0 => _setListSortAscending 
+                ? _allSets.OrderBy(s => s.Name).ToList()
+                : _allSets.OrderByDescending(s => s.Name).ToList(),
+            1 => _setListSortAscending 
+                ? _allSets.OrderBy(s => s.Code).ToList()
+                : _allSets.OrderByDescending(s => s.Code).ToList(),
+            2 => _setListSortAscending 
+                ? _allSets.OrderBy(s => s.CardCount).ToList()
+                : _allSets.OrderByDescending(s => s.CardCount).ToList(),
+            3 => _setListSortAscending 
+                ? _allSets.OrderBy(s => s.ReleasedAt ?? "").ToList()
+                : _allSets.OrderByDescending(s => s.ReleasedAt ?? "").ToList(),
+            4 => _setListSortAscending 
+                ? _allSets.OrderBy(s => s.SetType).ToList()
+                : _allSets.OrderByDescending(s => s.SetType).ToList(),
+            _ => _allSets
+        };
+
+        DisplaySets(sortedSets);
+    }
+
+    // Resize event handlers
+    private void TabSearchCard_Resize(object? sender, EventArgs e)
+    {
+        if (tabSearchCard.Width > 0 && tabSearchCard.Height > 0)
+        {
+            // Adjust card details panel width based on tab width
+            int availableWidth = tabSearchCard.Width - picCardImage.Right - 40;
+            if (availableWidth > 400)
+            {
+                panelCardDetails.Width = availableWidth;
+            }
+        }
+    }
+
+    private void TabBrowseSets_Resize(object? sender, EventArgs e)
+    {
+        if (tabBrowseSets.Width > 0 && tabBrowseSets.Height > 0)
+        {
+            // Calculate available height (from top of list to bottom of tab, minus margins)
+            int availableHeight = tabBrowseSets.Height - listViewSets.Top - 20; // 20px bottom margin
+            
+            if (availableHeight > 200) // Minimum reasonable height
+            {
+                listViewSets.Height = availableHeight;
+                panelSetDetails.Height = availableHeight;
+            }
+            
+            // Adjust set details panel width based on tab width
+            int availableWidth = tabBrowseSets.Width - listViewSets.Right - 40;
+            if (availableWidth > 400)
+            {
+                panelSetDetails.Width = availableWidth;
+            }
+        }
+    }
+
+    private void TabSetCards_Resize(object? sender, EventArgs e)
+    {
+        if (tabSetCards.Width > 0 && tabSetCards.Height > 0)
+        {
+            // Calculate available space
+            int totalWidth = tabSetCards.Width - 40;
+            int minCardInfoWidth = 450;
+            int cardInfoWidth = 680;
+            
+            int actualCardInfoWidth = Math.Max(minCardInfoWidth, Math.Min(cardInfoWidth, totalWidth - 250));
+            int flowPanelWidth = totalWidth - actualCardInfoWidth - 20;
+            
+            if (flowPanelWidth < 190)
+            {
+                flowPanelWidth = 190;
+                actualCardInfoWidth = totalWidth - flowPanelWidth - 20;
+            }
+            
+            flowLayoutPanelCards.Width = flowPanelWidth;
+            panelCardInfo.Location = new Point(flowLayoutPanelCards.Right + 20, panelCardInfo.Top);
+            panelCardInfo.Width = actualCardInfoWidth;
+            
+            int availableHeight = tabSetCards.Height - flowLayoutPanelCards.Top - 20;
+            if (availableHeight > 400)
+            {
+                flowLayoutPanelCards.Height = availableHeight;
+                panelCardInfo.Height = availableHeight;
+            }
+        }
+    }
+
+    // Search Card Tab Events
+    private async void BtnSearchCard_Click(object? sender, EventArgs e)
+    {
+        await SearchCard();
+    }
+
+    private async void TxtSearchCard_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            e.SuppressKeyPress = true;
+            await SearchCard();
+        }
+    }
+
+    private async Task SearchCard()
+    {
+        var cardName = txtSearchCard.Text.Trim();
+        if (string.IsNullOrWhiteSpace(cardName))
+        {
+            MessageBox.Show("Please enter a card name.", "Search Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnSearchCard.Enabled = false;
+        btnSearchCard.Text = "Searching...";
+        
+        try
+        {
+            var card = await _scryfallService.GetCardByNameAsync(cardName);
+            
+            if (card != null)
+            {
+                _currentCard = card;
+                await DisplayCard(card);
+                btnLoadVariants.Enabled = true;
+            }
+            else
+            {
+                MessageBox.Show("Card not found.", "Search Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ClearCardDisplay();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error searching for card: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnSearchCard.Enabled = true;
+            btnSearchCard.Text = "Search";
+        }
+    }
+
+    private async void BtnLoadVariants_Click(object? sender, EventArgs e)
+    {
+        if (_currentCard == null)
+            return;
+
+        btnLoadVariants.Enabled = false;
+        btnLoadVariants.Text = "Loading...";
+
+        try
+        {
+            _currentCardVariants = await _scryfallService.GetAllPrintingsAsync(_currentCard.Name);
+            DisplayVariants(_currentCardVariants);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading variants: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnLoadVariants.Enabled = true;
+            btnLoadVariants.Text = "Reload Variants";
+        }
+    }
+
+    private async void BtnLoadSelectedVariants_Click(object? sender, EventArgs e)
+    {
+        if (_currentSelectedSetCard == null)
+            return;
+
+        btnLoadSelectedVariants.Enabled = false;
+        btnLoadSelectedVariants.Text = "Loading...";
+
+        try
+        {
+            _currentSelectedCardVariants = await _scryfallService.GetAllPrintingsAsync(_currentSelectedSetCard.Name);
+            DisplaySelectedCardVariants(_currentSelectedCardVariants);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading variants: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnLoadSelectedVariants.Enabled = true;
+            btnLoadSelectedVariants.Text = "Reload Variants";
+        }
+    }
+
+    private void DisplayVariants(List<Card> variants)
+    {
+        listViewVariants.Items.Clear();
+
+        if (variants.Count == 0)
+        {
+            lblVariantsHeader.Text = "Variants & Printings: None found";
+            return;
+        }
+
+        lblVariantsHeader.Text = $"Variants & Printings: {variants.Count} found";
+
+        foreach (var variant in variants)
+        {
+            var variantType = GetVariantDescription(variant);
+            
+            var item = new ListViewItem(variant.SetName);
+            item.SubItems.Add(variantType);
+            item.SubItems.Add(variant.CollectorNumber);
+            
+            var nonfoilPrice = !string.IsNullOrEmpty(variant.Prices?.Usd) 
+                ? $"${variant.Prices.Usd}" 
+                : (!string.IsNullOrEmpty(variant.Prices?.Eur) ? $"€{variant.Prices.Eur}" : "N/A");
+            item.SubItems.Add(nonfoilPrice);
+            
+            var foilPrice = !string.IsNullOrEmpty(variant.Prices?.UsdFoil) 
+                ? $"${variant.Prices.UsdFoil}" 
+                : (!string.IsNullOrEmpty(variant.Prices?.EurFoil) ? $"€{variant.Prices.EurFoil}" : "N/A");
+            item.SubItems.Add(foilPrice);
+            
+            item.SubItems.Add(variant.ReleasedAt ?? "N/A");
+            item.Tag = variant;
+            
+            listViewVariants.Items.Add(item);
+        }
+    }
+
+    private void DisplaySelectedCardVariants(List<Card> variants)
+    {
+        listViewSelectedVariants.Items.Clear();
+
+        if (variants.Count == 0)
+        {
+            lblSelectedVariantsHeader.Text = "All Variants: None found";
+            return;
+        }
+
+        lblSelectedVariantsHeader.Text = $"All Variants: {variants.Count} found";
+
+        foreach (var variant in variants)
+        {
+            var variantType = GetVariantDescription(variant);
+            
+            var item = new ListViewItem(variant.SetName);
+            item.SubItems.Add(variantType);
+            item.SubItems.Add(variant.CollectorNumber);
+            
+            var nonfoilPrice = !string.IsNullOrEmpty(variant.Prices?.Usd) 
+                ? $"${variant.Prices.Usd}" 
+                : (!string.IsNullOrEmpty(variant.Prices?.Eur) ? $"€{variant.Prices.Eur}" : "N/A");
+            item.SubItems.Add(nonfoilPrice);
+            
+            var foilPrice = !string.IsNullOrEmpty(variant.Prices?.UsdFoil) 
+                ? $"${variant.Prices.UsdFoil}" 
+                : (!string.IsNullOrEmpty(variant.Prices?.EurFoil) ? $"€{variant.Prices.EurFoil}" : "N/A");
+            item.SubItems.Add(foilPrice);
+            
+            item.SubItems.Add(variant.ReleasedAt ?? "N/A");
+            item.Tag = variant;
+            
+            listViewSelectedVariants.Items.Add(item);
+        }
+    }
+
+    private string GetVariantDescription(Card card)
+    {
+        var descriptions = new List<string>();
+
+        if (card.Promo)
+            descriptions.Add("Promo");
+
+        if (card.FrameEffects != null && card.FrameEffects.Any())
+        {
+            foreach (var effect in card.FrameEffects)
+            {
+                descriptions.Add(effect switch
+                {
+                    "showcase" => "Showcase",
+                    "extendedart" => "Extended Art",
+                    "borderless" => "Borderless",
+                    "inverted" => "Inverted",
+                    "etched" => "Etched",
+                    _ => effect
+                });
+            }
+        }
+
+        if (card.Finishes != null)
+        {
+            if (card.Finishes.Contains("foil") && !card.Finishes.Contains("nonfoil"))
+                descriptions.Add("Foil Only");
+            else if (card.Finishes.Contains("etched"))
+                descriptions.Add("Etched Available");
+        }
+
+        if (card.BorderColor != null && card.BorderColor != "black")
+            descriptions.Add($"{card.BorderColor} border");
+
+        return descriptions.Any() ? string.Join(", ", descriptions) : "Standard";
+    }
+
+    private async void ListViewVariants_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (listViewVariants.SelectedItems.Count > 0)
+        {
+            var variant = (Card)listViewVariants.SelectedItems[0].Tag;
+            await DisplayCard(variant);
+        }
+    }
+
+    private async void ListViewSelectedVariants_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (listViewSelectedVariants.SelectedItems.Count > 0)
+        {
+            var variant = (Card)listViewSelectedVariants.SelectedItems[0].Tag;
+            _currentSelectedSetCard = variant;
+            await DisplaySelectedCard(variant);
+        }
+    }
+
+    private async Task DisplayCard(Card card)
+    {
+        lblCardName.Text = card.Name;
+        lblCardValue.Text = FormatCardValue(card.Prices);
+        lblManaCost.Text = $"Mana Cost: {card.ManaCost ?? "N/A"} (CMC: {card.ConvertedManaCost})";
+        lblType.Text = $"Type: {card.TypeLine}";
+        lblOracleText.Text = $"Text:\n{card.OracleText ?? "N/A"}";
+        
+        if (!string.IsNullOrEmpty(card.Power) && !string.IsNullOrEmpty(card.Toughness))
+            lblPowerToughness.Text = $"Power/Toughness: {card.Power}/{card.Toughness}";
+        else
+            lblPowerToughness.Text = "";
+        
+        lblSetInfo.Text = $"Set: {card.SetName} ({card.Set.ToUpper()}) #{card.CollectorNumber}";
+        lblRarity.Text = $"Rarity: {card.Rarity}";
+        lblArtist.Text = $"Artist: {card.Artist ?? "Unknown"}";
+        
+        if (card.Prices != null)
+        {
+            var priceText = "This Version:\n";
+            if (!string.IsNullOrEmpty(card.Prices.Usd))
+                priceText += $"  USD (Nonfoil): ${card.Prices.Usd}\n";
+            if (!string.IsNullOrEmpty(card.Prices.UsdFoil))
+                priceText += $"  USD (Foil): ${card.Prices.UsdFoil}\n";
+            if (!string.IsNullOrEmpty(card.Prices.Eur))
+                priceText += $"  EUR (Nonfoil): €{card.Prices.Eur}\n";
+            if (!string.IsNullOrEmpty(card.Prices.EurFoil))
+                priceText += $"  EUR (Foil): €{card.Prices.EurFoil}\n";
+            if (!string.IsNullOrEmpty(card.Prices.Tix))
+                priceText += $"  MTGO Tix: {card.Prices.Tix}\n";
+            
+            var variantInfo = GetVariantDescription(card);
+            if (variantInfo != "Standard")
+                priceText += $"\nVariant Type: {variantInfo}";
+            
+            lblPrices.Text = priceText;
+        }
+        else
+        {
+            lblPrices.Text = "Prices: Not available";
+        }
+        
+        if (card.Legalities != null && card.Legalities.Any())
+        {
+            var legalText = "Format Legalities:\n";
+            foreach (var legality in card.Legalities.Where(l => l.Value == "legal"))
+            {
+                legalText += $"  {legality.Key}: {legality.Value}\n";
+            }
+            lblLegalities.Text = legalText;
+        }
+        else
+        {
+            lblLegalities.Text = "";
+        }
+        
+        string? imageUrl = card.ImageUris?.Normal ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Normal;
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            var image = await _imageCacheService.GetImageAsync(imageUrl);
+            if (image != null)
+            {
+                picCardImage.Image = image;
+            }
+        }
+        else
+        {
+            picCardImage.Image = null;
+        }
+
+        // Enable Add to Collection button
+        btnAddToCollection.Enabled = true;
+    }
+
+    private string FormatCardValue(Prices? prices)
+    {
+        if (prices == null)
+            return "Current Value: Not Available";
+        
+        var pricesList = new List<string>();
+        
+        if (!string.IsNullOrEmpty(prices.Usd))
+            pricesList.Add($"${prices.Usd} USD");
+        
+        if (!string.IsNullOrEmpty(prices.UsdFoil))
+            pricesList.Add($"${prices.UsdFoil} USD Foil");
+        
+        if (!string.IsNullOrEmpty(prices.Eur))
+            pricesList.Add($"€{prices.Eur} EUR");
+        
+        if (pricesList.Count == 0)
+            return "Current Value: Not Available";
+        
+        return $"?? Current Value: {string.Join(" | ", pricesList)}";
+    }
+
+    private void ClearCardDisplay()
+    {
+        _currentCard = null;
+        _currentCardVariants.Clear();
+        lblCardName.Text = "";
+        lblCardValue.Text = "";
+        lblManaCost.Text = "";
+        lblType.Text = "";
+        lblOracleText.Text = "";
+        lblPowerToughness.Text = "";
+        lblSetInfo.Text = "";
+        lblRarity.Text = "";
+        lblArtist.Text = "";
+        lblPrices.Text = "";
+        lblVariantsHeader.Text = "Variants & Printings:";
+        listViewVariants.Items.Clear();
+        lblLegalities.Text = "";
+        picCardImage.Image = null;
+        btnLoadVariants.Enabled = false;
+        btnAddToCollection.Enabled = false;
+    }
+
+    // Browse Sets Tab Events
+    private async void BtnSearchSet_Click(object? sender, EventArgs e)
+    {
+        await LoadAllSets();
+    }
+
+    private void TxtSearchSet_TextChanged(object? sender, EventArgs e)
+    {
+        FilterSets();
+    }
+
+    private async Task LoadAllSets()
+    {
+        btnSearchSet.Enabled = false;
+        btnSearchSet.Text = "Loading...";
+        
+        try
+        {
+            _allSets = await _scryfallService.GetAllSetsAsync();
+            _allSets = _allSets.OrderByDescending(s => s.ReleasedAt).ToList();
+            
+            // Reset sort state when loading new data
+            _setListSortColumn = 3; // Released column
+            _setListSortAscending = false; // Descending (newest first)
+            
+            DisplaySets(_allSets);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading sets: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnSearchSet.Enabled = true;
+            btnSearchSet.Text = "Reload Sets";
+        }
+    }
+
+    private void DisplaySets(List<Set> sets)
+    {
+        listViewSets.Items.Clear();
+        
+        foreach (var set in sets)
+        {
+            var item = new ListViewItem(set.Name);
+            item.SubItems.Add(set.Code.ToUpper());
+            item.SubItems.Add(set.CardCount.ToString());
+            item.SubItems.Add(set.ReleasedAt ?? "N/A");
+            item.SubItems.Add(set.SetType);
+            item.Tag = set;
+            listViewSets.Items.Add(item);
+        }
+    }
+
+    private void FilterSets()
+    {
+        if (_allSets.Count == 0)
+            return;
+        
+        var filter = txtSearchSet.Text.Trim().ToLower();
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            // If there's an active sort, apply it
+            if (_setListSortColumn >= 0)
+            {
+                SortSetsList();
+            }
+            else
+            {
+                DisplaySets(_allSets);
+            }
+        }
+        else
+        {
+            var filtered = _allSets.Where(s => 
+                s.Name.ToLower().Contains(filter) || 
+                s.Code.ToLower().Contains(filter)).ToList();
+            DisplaySets(filtered);
+        }
+    }
+
+    private void ListViewSets_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (listViewSets.SelectedItems.Count > 0)
+        {
+            var set = (Set)listViewSets.SelectedItems[0].Tag;
+            DisplaySetDetails(set);
+        }
+    }
+
+    private void DisplaySetDetails(Set set)
+    {
+        _currentSelectedSet = set;
+        lblSetName.Text = set.Name;
+        lblSetCode.Text = $"Code: {set.Code.ToUpper()}";
+        lblSetType.Text = $"Type: {set.SetType}";
+        lblCardCount.Text = $"Cards: {set.CardCount}";
+        lblReleaseDate.Text = $"Released: {set.ReleasedAt ?? "Unknown"}";
+        btnViewSetCards.Enabled = true;
+    }
+
+    private async void BtnViewSetCards_Click(object? sender, EventArgs e)
+    {
+        if (_currentSelectedSet == null)
+            return;
+        
+        await LoadSetCards(_currentSelectedSet);
+        tabControl.SelectedTab = tabSetCards;
+    }
+
+    // Set Cards Tab Events
+    private async Task LoadSetCards(Set set)
+    {
+        lblCurrentSet.Text = $"Loading cards from {set.Name}...";
+        flowLayoutPanelCards.Controls.Clear();
+        btnViewSetCards.Enabled = false;
+        
+        try
+        {
+            _currentSetCards = await _scryfallService.GetCardsBySetAsync(set.Code);
+            lblCurrentSet.Text = $"{set.Name} ({set.Code.ToUpper()}) - {_currentSetCards.Count} cards";
+            
+            _isAscendingSort = true;
+            btnToggleSortOrder.Text = "? Ascending";
+            
+            ApplySortAndDisplay();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading cards: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            lblCurrentSet.Text = $"Error loading {set.Name}";
+        }
+        finally
+        {
+            btnViewSetCards.Enabled = true;
+        }
+    }
+
+    private void CmbSortBy_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (_currentSetCards.Count > 0)
+        {
+            ApplySortAndDisplay();
+        }
+    }
+
+    private void BtnToggleSortOrder_Click(object? sender, EventArgs e)
+    {
+        _isAscendingSort = !_isAscendingSort;
+        btnToggleSortOrder.Text = _isAscendingSort ? "? Ascending" : "? Descending";
+        
+        if (_currentSetCards.Count > 0)
+        {
+            ApplySortAndDisplay();
+        }
+    }
+
+    private void ApplySortAndDisplay()
+    {
+        var sortedCards = SortCards(_currentSetCards);
+        UpdateSortOrderLabel();
+        _ = DisplaySetCards(sortedCards);
+    }
+
+    private List<Card> SortCards(List<Card> cards)
+    {
+        var sortBy = cmbSortBy.SelectedIndex;
+        
+        IOrderedEnumerable<Card> sorted = sortBy switch
+        {
+            0 => _isAscendingSort 
+                ? cards.OrderBy(c => GetNumericCollectorNumber(c.CollectorNumber))
+                : cards.OrderByDescending(c => GetNumericCollectorNumber(c.CollectorNumber)),
+            1 => _isAscendingSort 
+                ? cards.OrderBy(c => GetCardPrice(c.Prices))
+                : cards.OrderByDescending(c => GetCardPrice(c.Prices)),
+            2 => _isAscendingSort 
+                ? cards.OrderBy(c => GetRarityOrder(c.Rarity))
+                : cards.OrderByDescending(c => GetRarityOrder(c.Rarity)),
+            3 => _isAscendingSort 
+                ? cards.OrderBy(c => c.Name)
+                : cards.OrderByDescending(c => c.Name),
+            _ => cards.OrderBy(c => GetNumericCollectorNumber(c.CollectorNumber))
+        };
+        
+        return sorted.ToList();
+    }
+
+    private int GetNumericCollectorNumber(string collectorNumber)
+    {
+        // Extract numeric part from collector number (e.g., "123a" -> 123)
+        var numericPart = new string(collectorNumber.TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(numericPart, out int result) ? result : int.MaxValue;
+    }
+
+    private decimal GetCardPrice(Prices? prices)
+    {
+        if (prices == null)
+            return 0;
+        
+        if (!string.IsNullOrEmpty(prices.Usd) && decimal.TryParse(prices.Usd, out decimal usdPrice))
+            return usdPrice;
+        
+        if (!string.IsNullOrEmpty(prices.Eur) && decimal.TryParse(prices.Eur, out decimal eurPrice))
+            return eurPrice * 1.1m; // Approximate conversion
+        
+        return 0;
+    }
+
+    private int GetRarityOrder(string rarity)
+    {
+        return rarity.ToLower() switch
+        {
+            "common" => 1,
+            "uncommon" => 2,
+            "rare" => 3,
+            "mythic" => 4,
+            "special" => 5,
+            "bonus" => 6,
+            _ => 0
+        };
+    }
+
+    private void UpdateSortOrderLabel()
+    {
+        var sortBy = cmbSortBy.SelectedIndex;
+        var direction = _isAscendingSort ? "lowest to highest" : "highest to lowest";
+        
+        var sortDescription = sortBy switch
+        {
+            0 => $"Sorted by card number ({direction})",
+            1 => $"Sorted by value ({direction})",
+            2 => _isAscendingSort ? "Sorted by rarity (common to mythic)" : "Sorted by rarity (mythic to common)",
+            3 => $"Sorted alphabetically ({(_isAscendingSort ? "A-Z" : "Z-A")})",
+            _ => ""
+        };
+        
+        lblSortOrder.Text = sortDescription;
+    }
+
+    private async Task DisplaySetCards(List<Card> cards)
+    {
+        flowLayoutPanelCards.SuspendLayout();
+        flowLayoutPanelCards.Controls.Clear();
+        
+        foreach (var card in cards)
+        {
+            var cardPanel = new Panel
+            {
+                Width = 180,
+                Height = 300,
+                Margin = new Padding(5),
+                BorderStyle = BorderStyle.FixedSingle,
+                Cursor = Cursors.Hand,
+                Tag = card
+            };
+            
+            var picBox = new PictureBox
+            {
+                Width = 170,
+                Height = 237,
+                Location = new Point(5, 5),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Tag = card
+            };
+            
+            var lblName = new Label
+            {
+                Width = 170,
+                Height = 25,
+                Location = new Point(5, 245),
+                Text = card.Name,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 7F),
+                Tag = card
+            };
+            
+            var lblPrice = new Label
+            {
+                Width = 170,
+                Height = 20,
+                Location = new Point(5, 273),
+                Text = GetCardPriceText(card.Prices),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 7F, FontStyle.Bold),
+                ForeColor = Color.DarkGreen,
+                Tag = card
+            };
+            
+            cardPanel.Controls.Add(picBox);
+            cardPanel.Controls.Add(lblName);
+            cardPanel.Controls.Add(lblPrice);
+            
+            cardPanel.Click += (s, e) => SelectCard(card);
+            picBox.Click += (s, e) => SelectCard(card);
+            lblName.Click += (s, e) => SelectCard(card);
+            lblPrice.Click += (s, e) => SelectCard(card);
+            
+            flowLayoutPanelCards.Controls.Add(cardPanel);
+            
+            string? imageUrl = card.ImageUris?.Small ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Small;
+            if (!string.IsNullOrEmpty(imageUrl))
+            {
+                _ = LoadCardThumbnail(picBox, imageUrl);
+            }
+        }
+        
+        flowLayoutPanelCards.ResumeLayout();
+    }
+
+    private string GetCardPriceText(Prices? prices)
+    {
+        if (prices == null)
+            return "N/A";
+        
+        if (!string.IsNullOrEmpty(prices.Usd))
+            return $"${prices.Usd}";
+        
+        if (!string.IsNullOrEmpty(prices.Eur))
+            return $"€{prices.Eur}";
+        
+        return "N/A";
+    }
+
+    private async Task LoadCardThumbnail(PictureBox picBox, string imageUrl)
+    {
+        try
+        {
+            var image = await _imageCacheService.GetImageAsync(imageUrl);
+            if (image != null && !picBox.IsDisposed)
+            {
+                picBox.Image = image;
+            }
+        }
+        catch
+        {
+            // Ignore errors for individual thumbnails
+        }
+    }
+
+    private async void SelectCard(Card card)
+    {
+        _currentSelectedSetCard = card;
+        await DisplaySelectedCard(card);
+        
+        btnLoadSelectedVariants.Enabled = true;
+        btnAddSelectedToCollection.Enabled = true;
+        listViewSelectedVariants.Items.Clear();
+        lblSelectedVariantsHeader.Text = "All Variants: Click 'Load All Variants' to see other printings";
+        _currentSelectedCardVariants.Clear();
+    }
+
+    private async Task DisplaySelectedCard(Card card)
+    {
+        lblSelectedCardName.Text = card.Name;
+        lblSelectedCardValue.Text = FormatCardValue(card.Prices);
+        lblSelectedCardType.Text = $"Type: {card.TypeLine}\nMana Cost: {card.ManaCost ?? "N/A"}";
+        
+        var variantInfo = GetVariantDescription(card);
+        lblSelectedCardVariant.Text = $"Variant: {variantInfo}\nFinishes: {GetFinishesText(card)}";
+        
+        lblSelectedCardText.Text = $"Text:\n{card.OracleText ?? "N/A"}";
+        lblSelectedCardSet.Text = $"Set: {card.SetName}\nRarity: {card.Rarity}\nCollector #: {card.CollectorNumber}\nArtist: {card.Artist ?? "Unknown"}";
+        
+        string? imageUrl = card.ImageUris?.Normal ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Normal;
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            var image = await _imageCacheService.GetImageAsync(imageUrl);
+            if (image != null)
+            {
+                picSelectedCard.Image = image;
+            }
+        }
+    }
+
+    private string GetFinishesText(Card card)
+    {
+        if (card.Finishes == null || !card.Finishes.Any())
+            return "Unknown";
+        
+        return string.Join(", ", card.Finishes.Select(f => 
+            f switch
+            {
+                "foil" => "Foil",
+                "nonfoil" => "Nonfoil",
+                "etched" => "Etched",
+                _ => f
+            }
+        ));
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        _imageCacheService.ClearCache();
+        base.OnFormClosing(e);
+    }
+}

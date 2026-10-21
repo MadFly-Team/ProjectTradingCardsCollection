@@ -1,0 +1,240 @@
+﻿using ProjectMTGCollector.Services;
+using ProjectMTGCollector.Utils;
+using ProjectMTGCollector.Models;
+
+Console.WriteLine("╔════════════════════════════════════════════════════════════════╗");
+Console.WriteLine("║    Magic: The Gathering Card Database Viewer                  ║");
+Console.WriteLine("║    Powered by Scryfall API                                     ║");
+Console.WriteLine("╚════════════════════════════════════════════════════════════════╝");
+
+var scryfallService = new ScryfallService();
+
+while (true)
+{
+    Console.WriteLine("\n");
+    Console.WriteLine("What would you like to do?");
+    Console.WriteLine("1. Search for a card by name");
+    Console.WriteLine("2. Search cards with filters");
+    Console.WriteLine("3. Browse sets");
+    Console.WriteLine("4. View cards from a specific set");
+    Console.WriteLine("5. Download card image");
+    Console.WriteLine("6. Exit");
+    Console.Write("\nSelect an option (1-6): ");
+
+    var choice = Console.ReadLine();
+
+    switch (choice)
+    {
+        case "1":
+            await SearchCardByName(scryfallService);
+            break;
+        case "2":
+            await SearchCardsWithFilters(scryfallService);
+            break;
+        case "3":
+            await BrowseSets(scryfallService);
+            break;
+        case "4":
+            await ViewCardsFromSet(scryfallService);
+            break;
+        case "5":
+            await DownloadCardImage(scryfallService);
+            break;
+        case "6":
+            Console.WriteLine("\nThank you for using MTG Card Database Viewer!");
+            return;
+        default:
+            Console.WriteLine("\nInvalid option. Please try again.");
+            break;
+    }
+}
+
+static async Task SearchCardByName(ScryfallService service)
+{
+    Console.Write("\nEnter card name: ");
+    var cardName = Console.ReadLine();
+
+    if (string.IsNullOrWhiteSpace(cardName))
+    {
+        Console.WriteLine("Invalid card name.");
+        return;
+    }
+
+    Console.WriteLine($"\nSearching for '{cardName}'...");
+    var card = await service.GetCardByNameAsync(cardName);
+
+    if (card != null)
+    {
+        CardDisplayHelper.DisplayCard(card);
+    }
+    else
+    {
+        Console.WriteLine("Card not found.");
+    }
+}
+
+static async Task SearchCardsWithFilters(ScryfallService service)
+{
+    Console.WriteLine("\nEnter search query (e.g., 'c:red t:dragon', 'pow>=5', 'o:\"draw a card\"'):");
+    Console.WriteLine("Tips:");
+    Console.WriteLine("  - c:blue = color blue");
+    Console.WriteLine("  - t:creature = type creature");
+    Console.WriteLine("  - o:\"flying\" = oracle text contains flying");
+    Console.WriteLine("  - pow>=5 = power 5 or greater");
+    Console.WriteLine("  - set:neo = from Kamigawa: Neon Dynasty");
+    Console.Write("\nQuery: ");
+    
+    var query = Console.ReadLine();
+
+    if (string.IsNullOrWhiteSpace(query))
+    {
+        Console.WriteLine("Invalid query.");
+        return;
+    }
+
+    Console.WriteLine($"\nSearching for cards matching: '{query}'...");
+    var cards = await service.SearchCardsAsync(query, 50);
+
+    if (cards.Any())
+    {
+        CardDisplayHelper.DisplayCardList(cards);
+        
+        Console.Write("\nEnter card number to view details (or press Enter to skip): ");
+        var input = Console.ReadLine();
+        
+        if (int.TryParse(input, out int index) && index > 0 && index <= cards.Count)
+        {
+            CardDisplayHelper.DisplayCard(cards[index - 1]);
+        }
+    }
+    else
+    {
+        Console.WriteLine("No cards found.");
+    }
+}
+
+static async Task BrowseSets(ScryfallService service)
+{
+    Console.WriteLine("\nFetching all sets...");
+    var sets = await service.GetAllSetsAsync();
+
+    if (sets.Any())
+    {
+        var sortedSets = sets.OrderByDescending(s => s.ReleasedAt).ToList();
+        CardDisplayHelper.DisplaySetList(sortedSets);
+        
+        Console.Write("\nEnter set code to view details (or press Enter to skip): ");
+        var setCode = Console.ReadLine();
+        
+        if (!string.IsNullOrWhiteSpace(setCode))
+        {
+            var set = await service.GetSetAsync(setCode.ToLower());
+            if (set != null)
+            {
+                CardDisplayHelper.DisplaySet(set);
+            }
+            else
+            {
+                Console.WriteLine("Set not found.");
+            }
+        }
+    }
+    else
+    {
+        Console.WriteLine("Could not fetch sets.");
+    }
+}
+
+static async Task ViewCardsFromSet(ScryfallService service)
+{
+    Console.Write("\nEnter set code (e.g., 'neo', 'mkm', 'one'): ");
+    var setCode = Console.ReadLine();
+
+    if (string.IsNullOrWhiteSpace(setCode))
+    {
+        Console.WriteLine("Invalid set code.");
+        return;
+    }
+
+    Console.WriteLine($"\nFetching cards from set '{setCode.ToUpper()}'...");
+    var cards = await service.GetCardsBySetAsync(setCode.ToLower());
+
+    if (cards.Any())
+    {
+        Console.WriteLine($"\nFound {cards.Count} cards in this set.");
+        CardDisplayHelper.DisplayCardList(cards.Take(20).ToList());
+        
+        if (cards.Count > 20)
+            Console.WriteLine($"\n... and {cards.Count - 20} more cards.");
+        
+        Console.Write("\nEnter card number to view details (or press Enter to skip): ");
+        var input = Console.ReadLine();
+        
+        if (int.TryParse(input, out int index) && index > 0 && index <= cards.Count)
+        {
+            CardDisplayHelper.DisplayCard(cards[index - 1]);
+        }
+    }
+    else
+    {
+        Console.WriteLine("No cards found or invalid set code.");
+    }
+}
+
+static async Task DownloadCardImage(ScryfallService service)
+{
+    Console.Write("\nEnter card name: ");
+    var cardName = Console.ReadLine();
+
+    if (string.IsNullOrWhiteSpace(cardName))
+    {
+        Console.WriteLine("Invalid card name.");
+        return;
+    }
+
+    Console.WriteLine($"\nSearching for '{cardName}'...");
+    var card = await service.GetCardByNameAsync(cardName);
+
+    if (card != null)
+    {
+        string? imageUrl = null;
+        
+        if (card.ImageUris?.Png != null)
+        {
+            imageUrl = card.ImageUris.Png;
+        }
+        else if (card.CardFaces != null && card.CardFaces.Any())
+        {
+            Console.WriteLine("\nThis is a double-faced card. Which face would you like?");
+            for (int i = 0; i < card.CardFaces.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {card.CardFaces[i].Name}");
+            }
+            Console.Write("Select face: ");
+            if (int.TryParse(Console.ReadLine(), out int faceIndex) && 
+                faceIndex > 0 && faceIndex <= card.CardFaces.Count)
+            {
+                imageUrl = card.CardFaces[faceIndex - 1].ImageUris?.Png;
+            }
+        }
+
+        if (imageUrl != null)
+        {
+            var fileName = $"{card.Name.Replace(" ", "_").Replace("//", "-")}_{card.Set}.png";
+            var directory = Path.Combine(Directory.GetCurrentDirectory(), "CardImages");
+            Directory.CreateDirectory(directory);
+            var filePath = Path.Combine(directory, fileName);
+            
+            Console.WriteLine($"\nDownloading image...");
+            await service.DownloadCardImageAsync(imageUrl, filePath);
+        }
+        else
+        {
+            Console.WriteLine("No image available for this card.");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Card not found.");
+    }
+}

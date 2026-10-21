@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="eng.traineddata" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1901.40" />
+  </ItemGroup>
+
+  <!-- Avoid duplicate resource output for MainForm by excluding the extra .resx tied to a partial file -->
+  <ItemGroup>
+    <EmbeddedResource Remove="Forms\MainForm.Collections.resx" />
+    <None Include="Forms\MainForm.Collections.resx" />
+  </ItemGroup>
+
+</Project>

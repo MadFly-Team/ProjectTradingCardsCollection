@@ -1,0 +1,24 @@
+﻿using ProjectMTGCollector.Forms;
+
+ApplicationConfiguration.Initialize();
+
+// Show splash screen in a task to avoid blocking
+var splashTask = Task.Run(async () =>
+{
+    var splashScreen = new SplashScreen();
+    
+    // Show splash on UI thread
+    Application.Run(splashScreen);
+});
+
+// Give splash time to show
+await Task.Delay(100);
+
+// Create and initialize main form
+var mainForm = new MainForm();
+
+// Wait a bit for splash
+await Task.Delay(2000);
+
+// Run main application
+Application.Run(mainForm);

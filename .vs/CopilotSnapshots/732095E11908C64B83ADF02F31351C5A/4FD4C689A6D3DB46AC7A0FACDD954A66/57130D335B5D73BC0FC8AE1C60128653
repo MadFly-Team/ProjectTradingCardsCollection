@@ -1,0 +1,43 @@
+﻿using System.Globalization;
+
+namespace ProjectMTGCollector.Models;
+
+public sealed class CardVariant
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string? Subtype { get; set; }
+    public string? Size { get; set; }
+    public List<string> Stamps { get; set; } = new();
+    public bool IsSummary { get; set; }
+    public bool EditionUnspecified { get; set; }
+    public Prices? Prices { get; set; }
+
+    public bool IsHolo => Type.Contains("holo", StringComparison.OrdinalIgnoreCase)
+        || Type.Contains("reverse", StringComparison.OrdinalIgnoreCase);
+
+    public string Description
+    {
+        get
+        {
+            var parts = new List<string> { Label(Type) };
+            if (!string.IsNullOrWhiteSpace(Subtype)) parts.Add(Label(Subtype));
+            parts.AddRange(Stamps.Select(Label));
+            if (!string.IsNullOrWhiteSpace(Size)) parts.Add(Label(Size));
+            if (EditionUnspecified) parts.Add("Edition unspecified (First Edition available)");
+            return string.Join(" / ", parts);
+        }
+    }
+
+    public override string ToString() => Description;
+
+    private static string Label(string value) => value switch
+    {
+        "reverse" or "reverse-holofoil" => "Reverse Holo",
+        "holofoil" => "Holo",
+        "1st-edition" => "First Edition",
+        "wPromo" => "W Promo",
+        "unspecified" => "Variant unspecified by provider",
+        _ => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value.Replace('-', ' '))
+    };
+}
