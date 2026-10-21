@@ -68,4 +68,5 @@ Testing/
 .cache/
 */bin/
 */dist/
-*/installer
+*/installer/
+*/obj/
