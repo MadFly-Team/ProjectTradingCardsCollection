@@ -67,6 +67,7 @@ Displays:
 - Power/Toughness (if applicable)
 - Set info, Rarity, Artist
 - Prices (USD/EUR/Tix)
+- PriceCharting graded-value table: general grades 6, 7/7.5, 8/8.5, and 9; separate PSA, CGC, and TAG at grade 10 when supplied
 - Legalities (formats where legal)
 - Variants & Printings list
   - Columns: Set, Type/Finish, Collector #, Nonfoil, Foil, Released
@@ -81,11 +82,13 @@ Displays:
 ## Browse Sets Tab
 Search and load sets, view details, and open the set’s cards.
 
+The app opens on this tab and loads all sets once at startup. Returning to the tab does not reload sets; use `Reload Sets` to refresh manually or retry a failed load.
+
 ### Controls
-- Filter sets…
+- Filter sets
   - Live text filter across set name and code.
-- Load All Sets
-  - Fetches sets from Scryfall.
+- Reload Sets
+  - Manually refreshes sets from Scryfall or retries a failed startup load.
 - Sets ListView
   - Columns: Name, Code, Cards, Released, Type
   - Click columns to sort; double-click a set to open its cards.
@@ -130,6 +133,7 @@ Browse cards from the selected set with two view modes: Thumbnails (grid) and Li
   - Type and Mana Cost
   - Variant info and finishes
   - Text and Set/Rarity/Collector #/Artist
+  - PriceCharting graded values and `Load / change graded values...` (same coverage as Search Card)
   - `Load All Variants` button (populates variants list below)
   - `Add to Collection` button
   - Variants list (same columns as Search Card tab)
@@ -142,6 +146,12 @@ Browse cards from the selected set with two view modes: Thumbnails (grid) and Li
 
 ### Loading Indicator
 - A small progress bar shows page load progress while fetching set cards.
+
+### PriceCharting Graded Values
+- Configure your paid API token in the Windows user environment variable `PRICECHARTING_API_TOKEN`, then restart the app and Visual Studio. See the [shared setup and licensing guidance](../../README.md#graded-card-values).
+- Click `Load / change graded values...` in either card-detail view and confirm the exact game/set/edition/finish. Search text is editable; the API returns at most 20 matches and no match is silently accepted.
+- General grades 6-9 are across grading companies, not PSA-specific; grades 7 and 8 include their half grades. Grade 10 prices are company-specific. Missing/unsupported values remain N/A, including absent or zero prices; no raw-price multipliers or grader substitutions are used.
+- Values are USD with estimated GBP, a source link, and lookup time. Only session caching is used; refresh with the button or restart to clear data. Collection prices/totals are unchanged. API requests require internet access, are rate-limited across both apps, and failures show a warning.
 
 ### Calculated British Pound Values
 - Card details, thumbnails, set lists, variants, collection cards, and collection totals include estimated GBP values alongside original prices.
@@ -178,11 +188,22 @@ Organize your personal collections, folders, and cards.
 - Selecting a folder shows its cards.
 - Buttons:
   - New Folder (enabled when a collection is selected)
+  - Edit Folder (enabled when a folder is selected)
   - Delete Folder (enabled when a folder is selected)
+- Edit and Edit Folder show the existing name and description. Save updates them; Cancel leaves them unchanged.
 
 ### Right: Cards List
 - Columns: Card Name, Set, Collector #, Qty, Foil, Condition, Value
-- Remove Card button
+- Choose List or Thumbnails using Card view beside the folder controls. Thumbnails include the name, quantity, foil status, and value; hover for full details. Images load from the cache or provider, with placeholders when unavailable.
+- Selection is preserved when switching views. Double-click an entry in either view to open it in Search Card.
+- Sort by name, unit price, quantity, set, collector number, variant/foil, or condition, with Ascending / Descending beneath Card view. Sorting applies in both views and keeps the selected entry. Prices use GBP estimates where available, otherwise currency groups; unpriced entries stay last. The saved collection order is unchanged.
+- Select a card row to enable Remove Card beside the folder buttons. Confirmation removes the entire saved quantity of that entry.
+- Horizontal and vertical scrollbars appear when columns or cards exceed the list area. Smaller windows also have tab scrollbars to reach the whole list.
+
+### Export and Import
+- Export All saves all collections and their complete folder/card data to a separate JSON export file.
+- Import accepts an export from the same game and adds new collection copies after confirmation, without replacing existing data. Repeated imports create duplicates.
+- Invalid files, unsupported versions, and files for another game show an error. Raw AppData collections.json files are not export files.
 
 ### Auto-Refresh
 - App polls collection storage periodically and refreshes UI on change.

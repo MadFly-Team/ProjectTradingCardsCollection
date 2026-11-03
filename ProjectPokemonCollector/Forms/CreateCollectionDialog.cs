@@ -17,6 +17,14 @@ public partial class CreateCollectionDialog : Form
         InitializeComponent();
     }
 
+    public CreateCollectionDialog(string name, string description) : this()
+    {
+        Text = "Edit Collection";
+        txtName.Text = name;
+        txtDescription.Text = description;
+        btnCreate.Text = "Save";
+    }
+
     private void InitializeComponent()
     {
         this.lblName = new Label();

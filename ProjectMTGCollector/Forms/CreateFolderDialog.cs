@@ -17,6 +17,14 @@ public partial class CreateFolderDialog : Form
         InitializeComponent();
     }
 
+    public CreateFolderDialog(string name, string description) : this()
+    {
+        Text = "Edit Folder";
+        txtName.Text = name;
+        txtDescription.Text = description;
+        btnCreate.Text = "Save";
+    }
+
     private void InitializeComponent()
     {
         this.lblName = new Label();

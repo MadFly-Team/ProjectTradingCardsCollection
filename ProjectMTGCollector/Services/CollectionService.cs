@@ -3,8 +3,9 @@ using ProjectMTGCollector.Models;
 
 namespace ProjectMTGCollector.Services;
 
-public class CollectionService
+public partial class CollectionService
 {
+    private const string CollectionFileGame = "MTG";
     private readonly string _collectionsFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
     private List<Collection> _collections;

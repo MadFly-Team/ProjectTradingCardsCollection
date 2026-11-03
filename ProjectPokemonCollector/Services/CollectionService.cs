@@ -3,14 +3,23 @@ using ProjectMTGCollector.Models;
 
 namespace ProjectMTGCollector.Services;
 
-public class CollectionService
+public partial class CollectionService
 {
+    private const string CollectionFileGame = "Pokemon";
     private readonly string _collectionsFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
     private List<Collection> _collections;
     private DateTime? _lastLoadedWriteTimeUtc;
 
     public event EventHandler? CollectionsChanged;
+
+    static partial void ValidateImportedCard(CollectionCard card)
+    {
+        if (card.Variant is { } variant &&
+            (string.IsNullOrWhiteSpace(variant.Id) || string.IsNullOrWhiteSpace(variant.Type) ||
+             variant.Stamps == null || variant.Stamps.Any(string.IsNullOrWhiteSpace)))
+            throw new InvalidDataException("A card has invalid variant details.");
+    }
 
     public CollectionService(string? storageDirectory = null)
     {

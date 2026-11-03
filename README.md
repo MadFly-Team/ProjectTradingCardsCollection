@@ -99,15 +99,17 @@ The apps provide four main tabs: **Search Card**, **Browse Sets**, **Cards in Se
 
 1. Open **Search Card**.
 2. Enter a card name and press **Enter** or select **Search**.
-3. Review the card image and available details, such as set, collector number, rarity, type, rules text, artist, and price information.
+3. Review the card image and available details, such as set, collector number, rarity, type, rules text, artist, and price information. Both apps include a PriceCharting graded-value table for grades 6-10 (see [Graded card values](#graded-card-values)).
 4. Where available, select or load printings/variants to compare editions, finishes, or set releases. A double-click on a card image opens the larger image viewer.
-5. Use **Add to Collection** to save the card to a collection folder (see [Manage collections](#manage-collections)).
+5. Use **Add to Collection** beneath the card image, beside **Load Variants** and **Scan Webcam**, to save the displayed card to a collection folder (see [Manage collections](#manage-collections)). The button becomes enabled after a card loads.
 
 If the service returns no matching card, check the spelling or try a simpler name. Search behavior is determined by the relevant data provider.
 
 ### Browse sets and their cards
 
-1. Open **Browse Sets** and load or refresh the set list if it has not loaded yet.
+Both apps open on **Browse Sets** and automatically load all sets once at startup. Switching away and returning to this tab does not reload the list. Use **Reload Sets** to refresh manually or retry a failed startup load.
+
+1. Wait for the startup set load to finish, or use **Reload Sets** if you need to retry.
 2. Use the set filter to narrow the list by name or code. Select a set and choose **View Cards in Set**, or double-click the set where supported.
 3. In **Cards in Set**, select a card from the list or thumbnail grid to see its details.
 4. Use the sort controls to order the set by card number, name, rarity, or price where available. The MTG and Pokémon apps also provide a collector-number jump box and thumbnail sizing controls.
@@ -115,15 +117,38 @@ If the service returns no matching card, check the spelling or try a simpler nam
 
 Set and card data may take time to load, especially on the first request or when a set contains many cards. Subsequent requests may be faster because the apps cache data or images during use.
 
+### Graded card values
+
+Both **Search Card** and **Cards in Set** have a **Load / change graded values...** button. This optional integration uses the [PriceCharting Prices API](https://www.pricecharting.com/api-documentation), not Scryfall or TCGdex pricing.
+
+1. Obtain a paid PriceCharting API subscription. Its data is licensed for internal use only; distributing the data to other users through an app requires PriceCharting's commercial license and written permission.
+2. Set the Windows user environment variable `PRICECHARTING_API_TOKEN` to your own token. Use Windows' environment-variable settings; do not put the token in code, documentation, or screenshots. Restart the app and Visual Studio so they inherit the variable.
+3. Select a card and click **Load / change graded values...**. Confirm the exact game, set, collector number, edition, and finish in the search results. Adjust the search text if necessary; the API returns at most 20 matches. No fuzzy match is automatically accepted.
+4. Confirm the printing to fetch its current values. Prices are USD, with estimated GBP using the existing exchange-rate feed. The source link identifies the selected PriceCharting product and shows the lookup time, not the provider's price-update date.
+
+The **General (all graders)** column shows grades 6, 7/7.5, 8/8.5, and 9. Those values are not PSA-specific. Grade 10 has separate **PSA**, **CGC**, and **TAG** values when supplied. CGC 10 is not CGC Pristine 10. Unsupported company/grade combinations and missing or zero prices show **N/A**; prices are never extrapolated from raw cards or another grader.
+
+Confirmed lookups are cached only for the current app session and reused between the two card-detail views. Pokemon physical variants have separate cache entries. Use the button again to refresh or correct a match; restarting the app clears all graded data. Calls are spaced at least one second apart across both locally running apps. Failed requests show a warning and can be retried. Graded values do not replace collection prices or totals.
+
 ### Manage collections
 
 1. Open **My Collections** and select **New Collection**. Enter a name and optional description.
 2. Select the collection and create one or more folders (for example, by set, deck, storage box, or collecting goal).
 3. Return to Search Card or Cards in Set, select a card, and choose **Add to Collection**.
 4. In the dialog, select a folder, set the quantity, and provide any available variant, finish, condition, or notes information. A collection must have at least one folder before a card can be added.
-5. In **My Collections**, select a collection and folder to review saved cards. Use the remove control when you want to remove a saved entry. Deleting a collection or folder removes its contents, so confirm carefully.
+5. In **My Collections**, select a collection and folder to review saved cards. Select a card row to enable **Remove Card**, beside the folder buttons. Removing an entry removes its entire saved quantity after confirmation. Deleting a collection or folder removes its contents, so confirm carefully.
+6. Use **Edit** for the selected collection or **Edit Folder** for the selected folder. The dialog shows the existing name and description; choose **Save** to update them or **Cancel** to leave them unchanged.
 
 Adding an entry that matches an existing card/variant in the same folder may increase its quantity rather than creating a separate row. The app's matching details differ by game; see [Application-specific notes](#application-specific-notes).
+
+Use **Card view: List / Thumbnails** beside the folder controls to switch the saved-card display. List is the default. Thumbnails show cached card images with the name, quantity, foil/variant, and value; hover for full details. Missing images use a placeholder. Select an entry to enable **Remove Card**, or double-click it to open the saved printing in Search Card. Switching views keeps the selected entry.
+
+The saved-card list scrolls horizontally for extra columns and vertically for additional cards. On smaller windows, use the tab's scrollbars to reach the complete list and controls.
+
+Use **Sort by** and **Ascending / Descending** below Card view to sort by name, unit price, quantity, set, collector number, variant/foil, or condition in either view. Name ascending is the default, and the chosen sort remains active when changing folders. Prices use GBP estimates when conversion is available; otherwise amounts are grouped by their saved currency and sorted numerically within each group. Unpriced entries stay last in either direction. Sorting changes only the display, not the saved collection order.
+
+- **Export All...** saves all collections, folders, quantities, card details, and variant information to a JSON export file. Choose a separate backup file, not the app's active `collections.json`.
+- **Import...** loads an export from the same game after confirmation and saves the imported collections as new copies. Existing collections are never replaced or merged; importing the same file again creates duplicates. Invalid exports, unsupported versions, and exports from the other game are rejected with an error. Empty exports contain nothing to import. These exports are distinct from the raw AppData `collections.json` files.
 
 ### Optional webcam scanning
 

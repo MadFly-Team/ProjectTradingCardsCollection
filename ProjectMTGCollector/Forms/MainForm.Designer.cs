@@ -102,6 +102,7 @@ partial class MainForm {
     this.btnEditCollection = new Button();
     this.btnDeleteCollection = new Button();
     this.btnNewCollectionFolder = new Button();
+    this.btnEditFolder = new Button();
     this.btnDeleteFolder = new Button();
     this.btnRemoveCard = new Button();
 
@@ -256,12 +257,12 @@ partial class MainForm {
     this.btnLoadVariantsImage.Enabled = false;
     this.btnLoadVariantsImage.Anchor = AnchorStyles.Top | AnchorStyles.Left;
 
-    this.btnAddToCollection.Location = new Point(1090, 20);
-    this.btnAddToCollection.Size = new Size(150, 30);
-    this.btnAddToCollection.Text = "? Add to Collection";
+    this.btnAddToCollection.Location = new Point(290, 450);
+    this.btnAddToCollection.Size = new Size(210, 30);
+    this.btnAddToCollection.Text = "Add to Collection";
     this.btnAddToCollection.Click += BtnAddToCollection_Click;
     this.btnAddToCollection.Enabled = false;
-    this.btnAddToCollection.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+    this.btnAddToCollection.Anchor = AnchorStyles.Top | AnchorStyles.Left;
     this.btnAddToCollection.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
 
     // Webcam Scan button (placed under the card image for visibility)
@@ -826,7 +827,14 @@ partial class MainForm {
     this.btnNewCollectionFolder.Click += BtnNewCollectionFolder_Click;
     this.btnNewCollectionFolder.Enabled = false;
 
-    this.btnDeleteFolder.Location = new Point(640, 220);
+    this.btnEditFolder.Location = new Point(640, 220);
+    this.btnEditFolder.Size = new Size(120, 30);
+    this.btnEditFolder.Text = "Edit Folder";
+    this.btnEditFolder.Font = new Font("Segoe UI", 9F);
+    this.btnEditFolder.Click += BtnEditFolder_Click;
+    this.btnEditFolder.Enabled = false;
+
+    this.btnDeleteFolder.Location = new Point(640, 260);
     this.btnDeleteFolder.Size = new Size(120, 30);
     this.btnDeleteFolder.Text = "Delete Folder";
     this.btnDeleteFolder.Font = new Font("Segoe UI", 9F);
@@ -839,6 +847,10 @@ partial class MainForm {
     this.listViewCollectionCards.View = View.Details;
     this.listViewCollectionCards.FullRowSelect = true;
     this.listViewCollectionCards.GridLines = true;
+    this.listViewCollectionCards.MultiSelect = false;
+    this.listViewCollectionCards.HideSelection = false;
+    this.listViewCollectionCards.SelectedIndexChanged +=
+        ListViewCollectionCards_SelectedIndexChanged;
     this.listViewCollectionCards.Columns.Add("Card Name", 200);
     this.listViewCollectionCards.Columns.Add("Set", 120);
     this.listViewCollectionCards.Columns.Add("Collector #", 80);
@@ -850,13 +862,13 @@ partial class MainForm {
         AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left |
         AnchorStyles.Right;
 
-    this.btnRemoveCard.Location = new Point(770, 810);
+    this.btnRemoveCard.Location = new Point(640, 300);
     this.btnRemoveCard.Size = new Size(120, 30);
     this.btnRemoveCard.Text = "Remove Card";
     this.btnRemoveCard.Font = new Font("Segoe UI", 9F);
     this.btnRemoveCard.Click += BtnRemoveCard_Click;
     this.btnRemoveCard.Enabled = false;
-    this.btnRemoveCard.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+    this.btnRemoveCard.Anchor = AnchorStyles.Top | AnchorStyles.Left;
 
     this.tabCollections.Controls.Add(this.listViewCollections);
     this.tabCollections.Controls.Add(this.btnNewCollection);
@@ -865,9 +877,11 @@ partial class MainForm {
     this.tabCollections.Controls.Add(this.panelCollectionDetails);
     this.tabCollections.Controls.Add(this.treeViewCollectionFolders);
     this.tabCollections.Controls.Add(this.btnNewCollectionFolder);
+    this.tabCollections.Controls.Add(this.btnEditFolder);
     this.tabCollections.Controls.Add(this.btnDeleteFolder);
     this.tabCollections.Controls.Add(this.listViewCollectionCards);
     this.tabCollections.Controls.Add(this.btnRemoveCard);
+    InitializeCollectionFileControls();
   }
 
   private MenuStrip menuStrip;
@@ -961,6 +975,7 @@ partial class MainForm {
   private Button btnEditCollection;
   private Button btnDeleteCollection;
   private Button btnNewCollectionFolder;
+  private Button btnEditFolder;
   private Button btnDeleteFolder;
   private Button btnRemoveCard;
 

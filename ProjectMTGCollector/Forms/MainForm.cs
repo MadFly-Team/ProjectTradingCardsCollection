@@ -20,6 +20,10 @@ public partial class MainForm : Form {
   private Card? _currentSelectedSetCard;
   private List<Card> _currentCardVariants = new();
   private List<Card> _currentSelectedCardVariants = new();
+  private readonly GradedPricesControl _searchGradingTable = new();
+  private readonly GradedPricesControl _selectedGradingTable = new();
+  private readonly Label _searchGradingHeader = new();
+  private readonly Label _selectedGradingHeader = new();
   private bool _isAscendingSort = true;
   private ColorTheme _currentTheme;
   private int _setListSortColumn = -1;
@@ -35,6 +39,7 @@ public partial class MainForm : Form {
 
   public MainForm() {
     InitializeComponent();
+    InitializeGradingTables();
     _scryfallService = new ScryfallService();
     _imageCacheService = new ImageCacheService();
     _collectionService = new CollectionService();
@@ -54,7 +59,14 @@ public partial class MainForm : Form {
     _collectionsPollTimer.Interval = 2000;
     _collectionsPollTimer.Tick += CollectionsPollTimer_Tick;
     _collectionsPollTimer.Start();
+    tabControl.SelectedTab = tabBrowseSets;
+    Shown += MainForm_LoadSets;
     Shown += MainForm_LoadGbpRates;
+  }
+
+  private async void MainForm_LoadSets(object? sender, EventArgs e) {
+    Shown -= MainForm_LoadSets;
+    await LoadAllSets();
   }
 
   private async void MainForm_LoadGbpRates(object? sender, EventArgs e) {
@@ -68,6 +80,8 @@ public partial class MainForm : Form {
 
     if (IsDisposed)
       return;
+    UpdateGradedCard(_searchGradingTable, _currentCard);
+    UpdateGradedCard(_selectedGradingTable, _currentSelectedSetCard);
     if (_currentCard != null) {
       lblCardValue.Text = FormatCardValue(_currentCard.Prices);
       lblPrices.Text = FormatDetailedPrices(_currentCard);
@@ -184,6 +198,7 @@ public partial class MainForm : Form {
     ApplyThemeToLabels(panelCardDetails, theme);
     listViewVariants.BackColor = theme.ControlBackColor;
     listViewVariants.ForeColor = theme.ForeColor;
+    _searchGradingTable.ApplyColors(theme.ControlBackColor, theme.ForeColor);
 
     // Browse Sets Tab
     ApplyThemeToControl(txtSearchSet, theme);
@@ -204,6 +219,7 @@ public partial class MainForm : Form {
     ApplyThemeToButton(btnLoadSelectedVariants, theme);
     listViewSelectedVariants.BackColor = theme.ControlBackColor;
     listViewSelectedVariants.ForeColor = theme.ForeColor;
+    _selectedGradingTable.ApplyColors(theme.ControlBackColor, theme.ForeColor);
 
     // Refresh the form
     this.Refresh();
@@ -311,6 +327,8 @@ public partial class MainForm : Form {
       if (availableWidth > 400) {
         panelCardDetails.Width = availableWidth;
       }
+      _searchGradingHeader.Width = Math.Max(100, panelCardDetails.ClientSize.Width - 20);
+      _searchGradingTable.Width = Math.Max(320, panelCardDetails.ClientSize.Width - 20);
     }
   }
 
@@ -701,6 +719,7 @@ public partial class MainForm : Form {
 
   private async Task DisplayCard(Card card) {
     _currentCard = card;
+    UpdateGradedCard(_searchGradingTable, card);
     lblCardName.Text = card.Name;
     lblCardValue.Text = FormatCardValue(card.Prices);
     lblManaCost.Text =
@@ -768,6 +787,35 @@ public partial class MainForm : Form {
     }
   }
 
+  private void InitializeGradingTables() {
+    _searchGradingHeader.Text = "PriceCharting graded values (6-10)";
+    _searchGradingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+    _searchGradingHeader.Location = new Point(10, lblPrices.Bottom + 8);
+    _searchGradingHeader.Size = new Size(800, 24);
+    _searchGradingTable.Location = new Point(10, _searchGradingHeader.Bottom + 4);
+    _searchGradingTable.Size = new Size(800, 245);
+    panelCardDetails.Controls.Add(_searchGradingHeader);
+    panelCardDetails.Controls.Add(_searchGradingTable);
+
+    int shift = _searchGradingTable.Bottom + 12 - lblVariantsHeader.Top;
+    foreach (var control in new Control[] {
+               lblVariantsHeader, listViewVariants, prgLoadingVariants,
+               lblLegalities
+             }) {
+      control.Top += shift;
+    }
+
+    _selectedGradingHeader.Text = "PriceCharting graded values (6-10)";
+    _selectedGradingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+    panelCardInfo.Controls.Add(_selectedGradingHeader);
+    panelCardInfo.Controls.Add(_selectedGradingTable);
+  }
+
+  private void UpdateGradedCard(GradedPricesControl control, Card? card) {
+    control.SetCard(card?.Id, card?.Name ?? "", card?.SetName ?? "",
+                    card?.CollectorNumber ?? "", "Magic", _gbpPrices);
+  }
+
   private string FormatDetailedPrices(Card card) {
     if (card.Prices == null)
       return "Prices: Not available";
@@ -785,6 +833,7 @@ public partial class MainForm : Form {
   }
 
   private async Task DisplaySelectedCard(Card card) {
+    UpdateGradedCard(_selectedGradingTable, card);
     lblSelectedCardName.Text = card.Name;
     lblSelectedCardValue.Text = FormatCardValue(card.Prices);
     lblSelectedCardType.Text =
@@ -939,16 +988,27 @@ public partial class MainForm : Form {
                                rightPadding);
     top = lblSelectedCardSet.Bottom + 10;
 
+    int gradingTop = Math.Max(picSelectedCard.Bottom + 8, top);
+    ConfigureWrappingLabel(
+        _selectedGradingHeader, new Point(picSelectedCard.Left, gradingTop),
+        panelCardInfo.ClientSize.Width - picSelectedCard.Left - rightPadding);
+    _selectedGradingTable.Location =
+        new Point(picSelectedCard.Left, _selectedGradingHeader.Bottom + 4);
+    _selectedGradingTable.Width =
+        Math.Max(320, panelCardInfo.ClientSize.Width - picSelectedCard.Left - rightPadding);
+
     // Variants header and list directly below the card image
     try {
       int varLeft = picSelectedCard.Left;
-      int varTop = picSelectedCard.Bottom + 8;
+      int varTop = _selectedGradingTable.Bottom + 8;
       lblSelectedVariantsHeader.Location = new Point(varLeft, varTop);
       listViewSelectedVariants.Location =
           new Point(varLeft, lblSelectedVariantsHeader.Bottom + 5);
       listViewSelectedVariants.Size = new Size(
-          panelCardInfo.ClientSize.Width - varLeft - 20,
-          panelCardInfo.ClientSize.Height - listViewSelectedVariants.Top - 12);
+          Math.Max(100, panelCardInfo.ClientSize.Width - varLeft - 20),
+          Math.Max(180, panelCardInfo.ClientSize.Height - listViewSelectedVariants.Top - 12));
+      panelCardInfo.AutoScrollMinSize =
+          new Size(0, listViewSelectedVariants.Bottom + 12);
     } catch {
     }
 
@@ -1362,6 +1422,7 @@ public partial class MainForm : Form {
 
   private void ClearCardDisplay() {
     _currentCard = null;
+    UpdateGradedCard(_searchGradingTable, null);
     _currentCardVariants.Clear();
     lblCardName.Text = "";
     lblCardValue.Text = "";

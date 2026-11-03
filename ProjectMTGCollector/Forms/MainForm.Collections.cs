@@ -43,9 +43,15 @@ public partial class MainForm
         else
         {
             _currentCollection = null;
+            _currentFolder = null;
+            treeViewCollectionFolders.Nodes.Clear();
+            listViewCollectionCards.Items.Clear();
             btnEditCollection.Enabled = false;
             btnDeleteCollection.Enabled = false;
             btnNewCollectionFolder.Enabled = false;
+            btnEditFolder.Enabled = false;
+            btnDeleteFolder.Enabled = false;
+            btnRemoveCard.Enabled = false;
         }
     }
 
@@ -55,16 +61,24 @@ public partial class MainForm
         {
             _currentFolder = folder;
             DisplayFolderCards(folder);
+            btnEditFolder.Enabled = true;
             btnDeleteFolder.Enabled = true;
         }
         else
         {
             _currentFolder = null;
             listViewCollectionCards.Items.Clear();
+            btnEditFolder.Enabled = false;
             btnDeleteFolder.Enabled = false;
         }
-        
+
         btnRemoveCard.Enabled = false;
+    }
+
+    private void ListViewCollectionCards_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        btnRemoveCard.Enabled = _currentCollection != null && _currentFolder != null &&
+            listViewCollectionCards.SelectedItems.Count > 0;
     }
 
     private async void BtnNewCollection_Click(object? sender, EventArgs e)
@@ -94,8 +108,7 @@ public partial class MainForm
         if (_currentCollection == null)
             return;
 
-        using var dialog = new CreateCollectionDialog();
-        // Pre-fill with current values - would need to add properties to dialog
+        using var dialog = new CreateCollectionDialog(_currentCollection.Name, _currentCollection.Description);
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
             try
@@ -166,6 +179,31 @@ public partial class MainForm
         }
     }
 
+    private async void BtnEditFolder_Click(object? sender, EventArgs e)
+    {
+        if (_currentCollection == null || _currentFolder == null)
+            return;
+
+        var collection = _currentCollection;
+        var folder = _currentFolder;
+        using var dialog = new CreateFolderDialog(folder.Name, folder.Description);
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            try
+            {
+                folder.Name = dialog.FolderName;
+                folder.Description = dialog.FolderDescription;
+                await _collectionService.UpdateCollectionAsync(collection);
+                LoadCollectionFolders(collection);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating folder: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
     private async void BtnDeleteFolder_Click(object? sender, EventArgs e)
     {
         if (_currentCollection == null || _currentFolder == null)
@@ -230,8 +268,11 @@ public partial class MainForm
     // Display methods for Collections Tab
     private void RefreshCollectionsTab()
     {
+        var collectionId = _currentCollection?.Id;
+        var folderId = _currentFolder?.Id;
         listViewCollections.Items.Clear();
         var collections = _collectionService.GetAllCollections();
+        ListViewItem? selectedItem = null;
 
         foreach (var collection in collections)
         {
@@ -239,17 +280,32 @@ public partial class MainForm
             item.SubItems.Add(collection.GetTotalCardCount().ToString());
             item.Tag = collection;
             listViewCollections.Items.Add(item);
+            if (collection.Id == collectionId)
+            {
+                selectedItem = item;
+                _currentFolder = collection.Folders.FirstOrDefault(f => f.Id == folderId);
+            }
         }
 
-        // Clear details if nothing selected
-        if (_currentCollection != null)
+        if (selectedItem != null)
         {
-            var match = collections.FirstOrDefault(c => c.Id == _currentCollection.Id);
-            if (match != null)
-            {
-                _currentCollection = match;
-                DisplayCollectionDetails(match);
-            }
+            selectedItem.Selected = true;
+        }
+        else
+        {
+            _currentCollection = null;
+            _currentFolder = null;
+            treeViewCollectionFolders.Nodes.Clear();
+            listViewCollectionCards.Items.Clear();
+            btnEditCollection.Enabled = false;
+            btnDeleteCollection.Enabled = false;
+            btnNewCollectionFolder.Enabled = false;
+            btnEditFolder.Enabled = false;
+            btnDeleteFolder.Enabled = false;
+            btnRemoveCard.Enabled = false;
+            lblCollectionName.Text = "Select a collection";
+            lblCollectionDescription.Text = "";
+            lblCollectionStats.Text = "";
         }
     }
 
@@ -271,13 +327,20 @@ public partial class MainForm
 
     private void LoadCollectionFolders(Collection collection)
     {
+        var folderId = _currentFolder?.Id;
         treeViewCollectionFolders.Nodes.Clear();
+        _currentFolder = null;
+        listViewCollectionCards.Items.Clear();
+        btnEditFolder.Enabled = false;
+        btnDeleteFolder.Enabled = false;
+        btnRemoveCard.Enabled = false;
 
         var rootNode = new TreeNode(collection.Name)
         {
             Tag = collection,
             NodeFont = new Font("Segoe UI", 10F, FontStyle.Bold)
         };
+        TreeNode? selectedNode = null;
 
         foreach (var folder in collection.Folders)
         {
@@ -286,10 +349,13 @@ public partial class MainForm
                 Tag = folder
             };
             rootNode.Nodes.Add(folderNode);
+            if (folder.Id == folderId)
+                selectedNode = folderNode;
         }
 
         treeViewCollectionFolders.Nodes.Add(rootNode);
         rootNode.Expand();
+        treeViewCollectionFolders.SelectedNode = selectedNode ?? rootNode;
     }
 
     private void DisplayFolderCards(CollectionFolder folder)
@@ -310,12 +376,12 @@ public partial class MainForm
             listViewCollectionCards.Items.Add(item);
         }
 
-        // Enable/disable remove button
-        btnRemoveCard.Enabled = listViewCollectionCards.Items.Count > 0;
+        btnRemoveCard.Enabled = listViewCollectionCards.SelectedItems.Count > 0;
 
         // Attach double-click handler to load card into main view
         listViewCollectionCards.DoubleClick -= ListViewCollectionCards_DoubleClick;
         listViewCollectionCards.DoubleClick += ListViewCollectionCards_DoubleClick;
+        _ = RefreshCollectionThumbnailsAsync();
     }
 
     private async void ListViewCollectionCards_DoubleClick(object? sender, EventArgs e)

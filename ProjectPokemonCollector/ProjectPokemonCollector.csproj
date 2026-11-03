@@ -19,6 +19,14 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1901.40" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\PriceChartingService.cs" Link="Services\PriceChartingService.cs" />
+    <Compile Include="..\Shared\GradedPricesControl.cs" Link="Forms\GradedPricesControl.cs" />
+    <Compile Include="..\Shared\CollectionService.Files.cs" Link="Services\CollectionService.Files.cs" />
+    <Compile Include="..\Shared\MainForm.CollectionFiles.cs" Link="Forms\MainForm.CollectionFiles.cs" />
+    <Compile Include="..\Shared\MainForm.CollectionThumbnails.cs" Link="Forms\MainForm.CollectionThumbnails.cs" />
+  </ItemGroup>
+
   <!-- Avoid duplicate resource output for MainForm by excluding the extra .resx tied to a partial file -->
   <ItemGroup>
     <EmbeddedResource Remove="Forms\MainForm.Collections.resx" />

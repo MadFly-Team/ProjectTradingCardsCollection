@@ -2,7 +2,13 @@
 
 A separate Windows Forms Pokémon card collector based on the existing MTG Collector UI. It supports card-name lookup, set browsing, card images, printing/finish details, collection folders, price display, and the webcam/OCR workflow.
 
-In Cards in Set, the variants table appears below both the image and the complete card details. Scroll the right-hand panel to reach it when attacks or abilities contain long text.
+Search results and selected cards in Cards in Set include PriceCharting graded values. Set `PRICECHARTING_API_TOKEN` to your paid API token in Windows user environment variables, restart the app/Visual Studio, and use **Load / change graded values...** to confirm the exact printing. See the [shared setup and licensing guidance](../README.md#graded-card-values).
+
+The General column covers grades 6, 7/7.5, 8/8.5, and 9 across graders; it is not PSA-specific. Grade 10 has separate PSA, CGC, and TAG values when supplied. Unsupported/missing values remain N/A. Prices show USD and estimated GBP with a source link and lookup time. Confirmed products are cached only for the session, separately for each physical variant; collection values are unchanged.
+
+In Cards in Set, the variants table appears below both the image and the complete card details.
+
+The app opens on Browse Sets and loads all sets once at startup. Switching back to Browse Sets does not reload them. Use Reload Sets to refresh manually or retry a failed load.
 
 ## Data and storage
 
@@ -13,6 +19,7 @@ In Cards in Set, the variants table appears below both the image and the complet
 - Cards in Set loads full card details and prices before displaying the list or thumbnails, with download progress shown. Both views show normal pricing when available, otherwise a labeled holo price; N/A means neither price is supplied. The initial load takes longer, and subsequent loads reuse the session cache.
 - Collections are stored separately at `%APPDATA%\PokemonCollector\collections.json`; the MTG app's data is not shared.
 - OCR requires the included `eng.traineddata` file, which is copied to the build output.
+- Image downloads retry temporary network errors, timeouts, rate limits, and server failures up to three attempts. Only successful images are cached, so selecting a card again retries a failed download. Missing or failed images show a No Image placeholder; download failures are logged to diagnostic trace output. The HTTP timeout remains at its default of 100 seconds per attempt.
 
 ## Physical variants
 

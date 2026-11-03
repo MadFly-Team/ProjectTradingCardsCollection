@@ -37,12 +37,13 @@ public partial class AboutBox : Form
             }
 
             lblRandomCard.Text = $"{randomCard.Name}\n{randomCard.SetName} ({randomCard.Set.ToUpper()})";
+            picRandomCard.Image = _imageCacheService.GetPlaceholderImage();
             var imageUrl = randomCard.ImageUris?.Normal;
             if (!string.IsNullOrEmpty(imageUrl))
             {
                 var image = await _imageCacheService.GetImageAsync(imageUrl);
-                if (image != null)
-                    picRandomCard.Image = image;
+                if (!IsDisposed)
+                    picRandomCard.Image = image ?? _imageCacheService.GetPlaceholderImage();
             }
         }
         catch ( Exception ex )

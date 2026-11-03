@@ -21,6 +21,10 @@ public partial class MainForm : Form {
   private int _selectedCardRequest;
   private List<Card> _currentCardVariants = new();
   private List<Card> _currentSelectedCardVariants = new();
+  private readonly GradedPricesControl _searchGradingTable = new();
+  private readonly GradedPricesControl _selectedGradingTable = new();
+  private readonly Label _searchGradingHeader = new();
+  private readonly Label _selectedGradingHeader = new();
   private bool _isAscendingSort = true;
   private ColorTheme _currentTheme;
   private int _setListSortColumn = -1;
@@ -36,6 +40,7 @@ public partial class MainForm : Form {
 
   public MainForm() {
     InitializeComponent();
+    InitializeGradingTables();
     _pokemonCardService = new PokemonCardService();
     _imageCacheService = new ImageCacheService();
     _collectionService = new CollectionService();
@@ -55,7 +60,14 @@ public partial class MainForm : Form {
     _collectionsPollTimer.Interval = 2000;
     _collectionsPollTimer.Tick += CollectionsPollTimer_Tick;
     _collectionsPollTimer.Start();
+    tabControl.SelectedTab = tabBrowseSets;
+    Shown += MainForm_LoadSets;
     Shown += MainForm_LoadGbpRates;
+  }
+
+  private async void MainForm_LoadSets(object? sender, EventArgs e) {
+    Shown -= MainForm_LoadSets;
+    await LoadAllSets();
   }
 
   private async void MainForm_LoadGbpRates(object? sender, EventArgs e) {
@@ -69,6 +81,8 @@ public partial class MainForm : Form {
 
     if (IsDisposed)
       return;
+    UpdateGradedCard(_searchGradingTable, _currentCard);
+    UpdateGradedCard(_selectedGradingTable, _currentSelectedSetCard);
     if (_currentCard != null) {
       lblCardValue.Text = FormatCardValue(_currentCard);
       lblPrices.Text = FormatDetailedPrices(_currentCard);
@@ -185,6 +199,7 @@ public partial class MainForm : Form {
     ApplyThemeToLabels(panelCardDetails, theme);
     listViewVariants.BackColor = theme.ControlBackColor;
     listViewVariants.ForeColor = theme.ForeColor;
+    _searchGradingTable.ApplyColors(theme.ControlBackColor, theme.ForeColor);
 
     // Browse Sets Tab
     ApplyThemeToControl(txtSearchSet, theme);
@@ -205,6 +220,7 @@ public partial class MainForm : Form {
     ApplyThemeToButton(btnLoadSelectedVariants, theme);
     listViewSelectedVariants.BackColor = theme.ControlBackColor;
     listViewSelectedVariants.ForeColor = theme.ForeColor;
+    _selectedGradingTable.ApplyColors(theme.ControlBackColor, theme.ForeColor);
 
     // Refresh the form
     this.Refresh();
@@ -312,6 +328,8 @@ public partial class MainForm : Form {
       if (availableWidth > 400) {
         panelCardDetails.Width = availableWidth;
       }
+      _searchGradingHeader.Width = Math.Max(100, panelCardDetails.ClientSize.Width - 20);
+      _searchGradingTable.Width = Math.Max(320, panelCardDetails.ClientSize.Width - 20);
     }
   }
 
@@ -445,7 +463,8 @@ public partial class MainForm : Form {
       var picBox =
           new PictureBox { Width = thumb.Width, Height = thumb.Height,
                            Location = new Point(5, 5),
-                           SizeMode = PictureBoxSizeMode.Zoom, Tag = card };
+                           SizeMode = PictureBoxSizeMode.Zoom, Tag = card,
+                           Image = _imageCacheService.GetPlaceholderImage() };
 
       var lblName = new Label { Width = tile.Width - 10,
                                 Height = 25,
@@ -641,6 +660,7 @@ public partial class MainForm : Form {
       DisplayVariants(_currentCardVariants);
     }
     _currentCard = card;
+    UpdateGradedCard(_searchGradingTable, card);
     lblCardName.Text = card.Name;
     lblCardValue.Text = FormatCardValue(card);
     lblManaCost.Text = $"Energy types: {(card.Colors is { Count: > 0 } ? string.Join(", ", card.Colors) : "N/A")}";
@@ -676,24 +696,17 @@ public partial class MainForm : Form {
       lblLegalities.Text = "";
     }
 
+    picCardImage.Image = _imageCacheService.GetPlaceholderImage();
+    picCardImage.Visible = true;
     string? imageUrl = card.ImageUris?.Normal ??
                        card.CardFaces?.FirstOrDefault()?.ImageUris?.Normal;
     if (!string.IsNullOrEmpty(imageUrl)) {
       var image = await _imageCacheService.GetImageAsync(imageUrl);
-      if (image != null) {
-        picCardImage.Image = image;
-        picCardImage.Visible = true;
-        picCardImage.Enabled = true;
-        picCardImage.Refresh();
-        picCardImage.BringToFront();
-      } else {
-        picCardImage.Image = null;
-        picCardImage.Visible = false;
-      }
-    } else {
-      // show placeholder when no image
-      picCardImage.Image = _imageCacheService.GetPlaceholderImage();
-      picCardImage.Visible = true;
+      if (IsDisposed || !ReferenceEquals(_currentCard, card))
+        return;
+      picCardImage.Image = image ?? _imageCacheService.GetPlaceholderImage();
+      picCardImage.Enabled = true;
+      picCardImage.BringToFront();
     }
 
     // Enable Add to Collection and Load Variants buttons
@@ -703,6 +716,36 @@ public partial class MainForm : Form {
       btnLoadVariantsImage.Enabled = true;
     } catch {
     }
+  }
+
+  private void InitializeGradingTables() {
+    _searchGradingHeader.Text = "PriceCharting graded values (6-10)";
+    _searchGradingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+    _searchGradingHeader.Location = new Point(10, lblPrices.Bottom + 8);
+    _searchGradingHeader.Size = new Size(800, 24);
+    _searchGradingTable.Location = new Point(10, _searchGradingHeader.Bottom + 4);
+    _searchGradingTable.Size = new Size(800, 245);
+    panelCardDetails.Controls.Add(_searchGradingHeader);
+    panelCardDetails.Controls.Add(_searchGradingTable);
+
+    int shift = _searchGradingTable.Bottom + 12 - lblVariantsHeader.Top;
+    foreach (var control in new Control[] {
+               lblVariantsHeader, listViewVariants, prgLoadingVariants,
+               lblLegalities
+             }) {
+      control.Top += shift;
+    }
+
+    _selectedGradingHeader.Text = "PriceCharting graded values (6-10)";
+    _selectedGradingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+    panelCardInfo.Controls.Add(_selectedGradingHeader);
+    panelCardInfo.Controls.Add(_selectedGradingTable);
+  }
+
+  private void UpdateGradedCard(GradedPricesControl control, Card? card) {
+    string? key = card == null ? null : $"{card.Id}:{card.SelectedVariant?.Id ?? "card"}";
+    control.SetCard(key, card?.Name ?? "", card?.SetName ?? "",
+                    card?.CollectorNumber ?? "", "Pokemon", _gbpPrices);
   }
 
   private string FormatDetailedPrices(Card card) {
@@ -724,9 +767,10 @@ public partial class MainForm : Form {
   private async Task DisplaySelectedCard(Card card) {
     var request = ++_selectedCardRequest;
     _currentSelectedSetCard = null;
+    UpdateGradedCard(_selectedGradingTable, null);
     btnLoadSelectedVariants.Enabled = false;
     btnAddSelectedToCollection.Enabled = false;
-    picSelectedCard.Image = null;
+    picSelectedCard.Image = _imageCacheService.GetPlaceholderImage();
     lblSelectedCardName.Text = card.Name;
     lblSelectedCardValue.Text = "Loading full card details...";
     lblSelectedCardType.Text = "";
@@ -763,6 +807,7 @@ public partial class MainForm : Form {
 
     btnLoadSelectedVariants.Enabled = true;
     btnAddSelectedToCollection.Enabled = true;
+    UpdateGradedCard(_selectedGradingTable, card);
     lblSelectedCardName.Text = card.Name;
     lblSelectedCardValue.Text = FormatCardValue(card);
     lblSelectedCardType.Text = $"Category / Stage: {card.TypeLine}\nHP: {card.Power ?? "N/A"}";
@@ -787,11 +832,9 @@ public partial class MainForm : Form {
                        card.CardFaces?.FirstOrDefault()?.ImageUris?.Normal;
     if (!string.IsNullOrEmpty(imageUrl)) {
       var image = await _imageCacheService.GetImageAsync(imageUrl);
-      if (image != null) {
-        if (IsDisposed || request != _selectedCardRequest)
-          return;
-        picSelectedCard.Image = image;
-      }
+      if (IsDisposed || request != _selectedCardRequest)
+        return;
+      picSelectedCard.Image = image ?? _imageCacheService.GetPlaceholderImage();
     }
 
     if (IsDisposed || request != _selectedCardRequest)
@@ -924,9 +967,18 @@ public partial class MainForm : Form {
                                rightPadding);
     top = lblSelectedCardSet.Bottom + 10;
 
+    int gradingTop = Math.Max(picSelectedCard.Bottom + 8, top);
+    ConfigureWrappingLabel(
+        _selectedGradingHeader, new Point(picSelectedCard.Left, gradingTop),
+        panelCardInfo.ClientSize.Width - picSelectedCard.Left - rightPadding);
+    _selectedGradingTable.Location =
+        new Point(picSelectedCard.Left, _selectedGradingHeader.Bottom + 4);
+    _selectedGradingTable.Width =
+        Math.Max(320, panelCardInfo.ClientSize.Width - picSelectedCard.Left - rightPadding);
+
     // Keep the variants section below both the image and the full details.
     int varLeft = picSelectedCard.Left;
-    int varTop = Math.Max(picSelectedCard.Bottom + 8, top);
+    int varTop = _selectedGradingTable.Bottom + 8;
     ConfigureWrappingLabel(lblSelectedVariantsHeader,
                            new Point(varLeft, varTop),
                            panelCardInfo.ClientSize.Width - varLeft - rightPadding);
@@ -1300,14 +1352,9 @@ public partial class MainForm : Form {
   }
 
   private async Task LoadCardThumbnail(PictureBox picBox, string imageUrl) {
-    try {
-      var image = await _imageCacheService.GetImageAsync(imageUrl);
-      if (image != null) {
-        picBox.Image = image;
-      }
-    } catch {
-      // Ignore errors for individual thumbnails
-    }
+    var image = await _imageCacheService.GetImageAsync(imageUrl);
+    if (!picBox.IsDisposed)
+      picBox.Image = image ?? _imageCacheService.GetPlaceholderImage();
   }
 
   private async void SelectCard(Card card) {
@@ -1355,6 +1402,7 @@ public partial class MainForm : Form {
 
   private void ClearCardDisplay() {
     _currentCard = null;
+    UpdateGradedCard(_searchGradingTable, null);
     _currentCardVariants.Clear();
     lblCardName.Text = "";
     lblCardValue.Text = "";
